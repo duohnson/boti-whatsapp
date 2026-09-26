@@ -204,7 +204,7 @@ def procesar_mensaje_whatsapp(identificador, telefono_cliente, texto_usuario, id
             ), None)
 
         if not opcion_elegida:
-            enviar_respuesta_de_nodo(nodo_actual, None, sesion_whatsapp, telefono_cliente)
+            enviar_respuesta_de_nodo(nodo_actual, None, sesion_whatsapp, telefono_cliente, destino_chat)
             return
 
         nodo_siguiente = opcion_elegida.nodo_siguiente
@@ -231,12 +231,12 @@ def procesar_mensaje_whatsapp(identificador, telefono_cliente, texto_usuario, id
         sesion.estado = 'humano'
         sesion.save(update_fields=['estado'])
         if nodo_actual.contenido_mensaje:
-            enviar_respuesta_de_nodo(nodo_actual, None, sesion_whatsapp, telefono_cliente)
+            enviar_respuesta_de_nodo(nodo_actual, None, sesion_whatsapp, telefono_cliente, destino_chat)
     elif nodo_actual.tipo_nodo == 'END':
         sesion.estado = 'cerrada'
         sesion.activo = False
         sesion.save(update_fields=['estado', 'activo'])
         if nodo_actual.contenido_mensaje:
-            enviar_respuesta_de_nodo(nodo_actual, None, sesion_whatsapp, telefono_cliente)
+            enviar_respuesta_de_nodo(nodo_actual, None, sesion_whatsapp, telefono_cliente, destino_chat)
     else:
-        enviar_respuesta_de_nodo(nodo_actual, None, sesion_whatsapp, telefono_cliente)
+        enviar_respuesta_de_nodo(nodo_actual, None, sesion_whatsapp, telefono_cliente, destino_chat)
