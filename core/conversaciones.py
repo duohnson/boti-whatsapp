@@ -50,7 +50,7 @@ def responder_con_ia(empresa, sesion, sesion_whatsapp, ahora, opcion_pdf=None):
     ciclo.save(update_fields=['conteo_mensajes_ia'])
 
 
-def enviar_respuesta_de_nodo(nodo, opcion, sesion_whatsapp, telefono):
+def enviar_respuesta_de_nodo(nodo, opcion, sesion_whatsapp, telefono, destino_chat=None):
     # si eligio una opcion con pdf tambien mando su adjunto
     texto = mensaje_con_opciones(nodo)
     enviar_mensaje_whatsapp(
@@ -58,6 +58,7 @@ def enviar_respuesta_de_nodo(nodo, opcion, sesion_whatsapp, telefono):
         telefono,
         texto,
         opcion.pk if opcion and opcion.archivo_pdf else None,
+        destino_chat,
     )
 
 
@@ -75,7 +76,7 @@ def asignar_nodo(sesion, nodo):
     sesion.save(update_fields=['nodo_actual', 'estado', 'activo', 'ultima_actividad'])
 
 
-def procesar_mensaje_whatsapp(identificador, telefono_cliente, texto_usuario, identificador_mensaje=''):
+def procesar_mensaje_whatsapp(identificador, telefono_cliente, texto_usuario, identificador_mensaje='', destino_chat=None):
     # busco la empresa usando la sesion exacta que recibio el mensaje
     sesion_whatsapp = SesionWhatsApp.objects.select_related('empresa').get(
         identificador=identificador,
@@ -118,7 +119,7 @@ def procesar_mensaje_whatsapp(identificador, telefono_cliente, texto_usuario, id
         if nodo_inicial.tipo_nodo == 'AI_AGENT':
             responder_con_ia(empresa, sesion, sesion_whatsapp, ahora)
         else:
-            enviar_respuesta_de_nodo(nodo_inicial, None, sesion_whatsapp, telefono_cliente)
+            enviar_respuesta_de_nodo(nodo_inicial, None, sesion_whatsapp, telefono_cliente, destino_chat)
         return
 
     if inactiva:
@@ -134,7 +135,7 @@ def procesar_mensaje_whatsapp(identificador, telefono_cliente, texto_usuario, id
             sesion.save(update_fields=['nodo_actual'])
             return
         asignar_nodo(sesion, nodo_inicial)
-        enviar_respuesta_de_nodo(nodo_inicial, None, sesion_whatsapp, telefono_cliente)
+        enviar_respuesta_de_nodo(nodo_inicial, None, sesion_whatsapp, telefono_cliente, destino_chat)
         return
 
     nodo_actual = sesion.nodo_actual
@@ -144,7 +145,7 @@ def procesar_mensaje_whatsapp(identificador, telefono_cliente, texto_usuario, id
             return
         if nodo_inicial:
             asignar_nodo(sesion, nodo_inicial)
-            enviar_respuesta_de_nodo(nodo_inicial, None, sesion_whatsapp, telefono_cliente)
+            enviar_respuesta_de_nodo(nodo_inicial, None, sesion_whatsapp, telefono_cliente, destino_chat)
         return
 
     if nodo_actual.tipo_nodo in ['MENU', 'TEXT']:
@@ -181,7 +182,7 @@ def procesar_mensaje_whatsapp(identificador, telefono_cliente, texto_usuario, id
             if entrada_reducida and any(car.isalpha() for car in entrada_reducida):
                 entrada_reducida = ''.join(ch for ch in entrada_reducida if ch.isalpha() or ch.isspace())
             if not entrada_reducida or not any(car.isalnum() for car in entrada_reducida):
-                enviar_respuesta_de_nodo(nodo_actual, None, sesion_whatsapp, telefono_cliente)
+                enviar_respuesta_de_nodo(nodo_actual, None, sesion_whatsapp, telefono_cliente, destino_chat)
                 return
             opcion_elegida = next((
                 opcion for opcion in opciones
@@ -210,7 +211,7 @@ def procesar_mensaje_whatsapp(identificador, telefono_cliente, texto_usuario, id
         if nodo_siguiente.tipo_nodo == 'AI_AGENT':
             responder_con_ia(empresa, sesion, sesion_whatsapp, ahora, opcion_elegida.pk if opcion_elegida.archivo_pdf else None)
         else:
-            enviar_respuesta_de_nodo(nodo_siguiente, opcion_elegida, sesion_whatsapp, telefono_cliente)
+            enviar_respuesta_de_nodo(nodo_siguiente, opcion_elegida, sesion_whatsapp, telefono_cliente, destino_chat)
         return
 
     if nodo_actual.tipo_nodo == 'AI_AGENT':

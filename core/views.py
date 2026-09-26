@@ -125,6 +125,7 @@ def evento_whatsapp_interno(request):
                 datos['telefono_cliente'],
                 datos['texto'],
                 datos.get('id_mensaje', ''),
+                datos.get('destino') or None,
             )
             sesion.refresh_from_db()
             sesion.ultima_actividad = timezone.now()

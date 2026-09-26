@@ -16,9 +16,11 @@ def solicitar_whatsapp(ruta, datos=None, metodo='post'):
     respuesta.raise_for_status()
     return respuesta.json() if respuesta.content else {}
 
-def enviar_mensaje_whatsapp(sesion, destino, texto, opcion_pdf=None):
+def enviar_mensaje_whatsapp(sesion, destino, texto, opcion_pdf=None, destino_chat=None):
     # mando el id de sesion para no cruzar numeros de clientes
     datos = {'destino': destino, 'texto': texto}
+    if destino_chat:
+        datos['destino_chat'] = destino_chat
     if opcion_pdf:
         datos['opcion_pdf'] = opcion_pdf
     return solicitar_whatsapp(

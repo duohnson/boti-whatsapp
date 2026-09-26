@@ -77,18 +77,49 @@ function crearSesion(identificador) {
         clientes.delete(identificador);
     });
     cliente.on('message', async (mensaje) => {
-        if (mensaje.fromMe || !mensaje.body?.trim() || !mensaje.from.endsWith('@c.us')) return;
+        if (mensaje.fromMe || !mensaje.body?.trim()) return;
+        const origen = mensaje.from || '';
+        if (!origen.endsWith('@c.us') && !origen.endsWith('@lid')) return;
+        const telefono = origen.split('@')[0].split(':')[0];
+        if (!/^\d{7,20}$/.test(telefono)) {
+            console.error(`Origen no numerico ${identificador}: ${origen}`);
+            return;
+        }
         try {
             await avisarDjango({
                 tipo: 'mensaje',
                 identificador,
-                id_mensaje: mensaje.id._serialized,
-                telefono_cliente: mensaje.from.split('@')[0],
+                id_mensaje: mensaje.id?._serialized || '',
+                telefono_cliente: telefono,
+                destino: origen,
                 texto: mensaje.body,
                 fecha: mensaje.timestamp
             });
         } catch (error) {
             console.error(`No se pudo procesar un mensaje de ${identificador}: ${error.message}`);
+        }
+    });
+    cliente.on('message_create', async (mensaje) => {
+        if (mensaje.fromMe || !mensaje.body?.trim()) return;
+        const origen = mensaje.from || '';
+        if (!origen.endsWith('@c.us') && !origen.endsWith('@lid')) return;
+        const telefono = origen.split('@')[0].split(':')[0];
+        if (!/^\d{7,20}$/.test(telefono)) {
+            console.error(`Origen no numerico ${identificador}: ${origen}`);
+            return;
+        }
+        try {
+            await avisarDjango({
+                tipo: 'mensaje',
+                identificador,
+                id_mensaje: mensaje.id?._serialized || '',
+                telefono_cliente: telefono,
+                destino: origen,
+                texto: mensaje.body,
+                fecha: mensaje.timestamp
+            });
+        } catch (error) {
+            console.error(`No se pudo procesar message_create de ${identificador}: ${error.message}`);
         }
     });
     cliente.initialize().catch((error) => {
@@ -149,10 +180,16 @@ const servidor = http.createServer(async (peticion, respuesta) => {
         const cliente = clientes.get(identificador);
         if (!cliente || !cliente.info) return responder(respuesta, 409, { error: 'Sesión no conectada' });
         const datos = await leerJson(peticion);
-        if (!/^\+?\d{7,15}$/.test(datos.destino || '') || typeof datos.texto !== 'string' || !datos.texto.trim()) {
+        if (typeof datos.texto !== 'string' || !datos.texto.trim()) {
+            return responder(respuesta, 400, { error: 'Mensaje no válido' });
+        }
+        const destinoChat = String(datos.destino_chat || '').trim();
+        const destinoNormalizado = String(datos.destino || '').trim();
+        const destinoFinal = destinoChat || `${destinoNormalizado.replace(/\D/g, '')}@c.us`;
+        if (!destinoChat && !/^\+?\d{7,15}$/.test(destinoNormalizado)) {
             return responder(respuesta, 400, { error: 'Destino o mensaje no válido' });
         }
-        await cliente.sendMessage(`${datos.destino.replace(/\D/g, '')}@c.us`, datos.texto);
+        await cliente.sendMessage(destinoFinal, datos.texto);
         if (datos.opcion_pdf !== undefined && datos.opcion_pdf !== null) {
             if (!Number.isSafeInteger(datos.opcion_pdf) || datos.opcion_pdf < 1) {
                 return responder(respuesta, 400, { error: 'Identificador de PDF no válido' });
@@ -167,7 +204,7 @@ const servidor = http.createServer(async (peticion, respuesta) => {
             if (!respuestaPdf.ok) throw new Error(`Django no pudo entregar el PDF: ${respuestaPdf.status}`);
             const pdf = Buffer.from(await respuestaPdf.arrayBuffer());
             const documento = new MessageMedia('application/pdf', pdf.toString('base64'), `opcion-${datos.opcion_pdf}.pdf`);
-            await cliente.sendMessage(`${datos.destino.replace(/\D/g, '')}@c.us`, documento);
+            await cliente.sendMessage(destinoFinal, documento);
         }
         return responder(respuesta, 200, { estado: 'enviado' });
     } catch (error) {
