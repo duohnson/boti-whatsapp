@@ -1,8 +1,11 @@
+import logging
 from django.utils import timezone
 from .models import SesionWhatsApp, SesionUsuario, NodoBot, HistorialChat, CicloFacturacion
 from .utils import enviar_mensaje_whatsapp
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
+
+logger = logging.getLogger(__name__)
 
 
 def mensaje_con_opciones(nodo):
@@ -40,7 +43,10 @@ def responder_con_ia(empresa, sesion, sesion_whatsapp, ahora, opcion_pdf=None):
     # le paso el historial junto con las instrucciones que puso el cliente
     respuesta = str(ChatOpenAI(temperature=0.7).invoke(mensajes).content)
     HistorialChat.objects.create(sesion_usuario=sesion, rol='assistant', contenido=respuesta)
-    enviar_mensaje_whatsapp(sesion_whatsapp, sesion.telefono_cliente, respuesta, opcion_pdf)
+    try:
+        enviar_mensaje_whatsapp(sesion_whatsapp, sesion.telefono_cliente, respuesta, opcion_pdf)
+    except Exception:
+        logger.exception('No se pudo entregar respuesta de IA a WhatsApp')
     ciclo, _ = CicloFacturacion.objects.get_or_create(
         empresa=empresa,
         mes=ahora.month,
@@ -53,13 +59,18 @@ def responder_con_ia(empresa, sesion, sesion_whatsapp, ahora, opcion_pdf=None):
 def enviar_respuesta_de_nodo(nodo, opcion, sesion_whatsapp, telefono, destino_chat=None):
     # si eligio una opcion con pdf tambien mando su adjunto
     texto = mensaje_con_opciones(nodo)
-    enviar_mensaje_whatsapp(
-        sesion_whatsapp,
-        telefono,
-        texto,
-        opcion.pk if opcion and opcion.archivo_pdf else None,
-        destino_chat,
-    )
+    try:
+        enviar_mensaje_whatsapp(
+            sesion_whatsapp,
+            telefono,
+            texto,
+            opcion.pk if opcion and opcion.archivo_pdf else None,
+            destino_chat,
+        )
+    except Exception:
+        logger.exception('No se pudo entregar respuesta del bot a WhatsApp')
+        return False
+    return True
 
 
 def asignar_nodo(sesion, nodo):

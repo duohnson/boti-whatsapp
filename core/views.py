@@ -120,13 +120,18 @@ def evento_whatsapp_interno(request):
         if datos.get('tipo') == 'mensaje':
             if not sesion.empresa.activo or sesion.estado != 'conectado':
                 return JsonResponse({'error': 'Sesión no conectada'}, status=409)
-            procesar_mensaje_whatsapp(
-                sesion.identificador,
-                datos['telefono_cliente'],
-                datos['texto'],
-                datos.get('id_mensaje', ''),
-                datos.get('destino') or None,
-            )
+            try:
+                procesar_mensaje_whatsapp(
+                    sesion.identificador,
+                    datos['telefono_cliente'],
+                    datos['texto'],
+                    datos.get('id_mensaje', ''),
+                    datos.get('destino') or None,
+                )
+            except Exception:
+                logger = __import__('logging').getLogger(__name__)
+                logger.exception('Error al procesar mensaje entrante de WhatsApp')
+                return JsonResponse({'estado': 'recibido', 'error': 'mensaje no procesado'}, status=200)
             sesion.refresh_from_db()
             sesion.ultima_actividad = timezone.now()
             sesion.save(update_fields=['ultima_actividad'])
