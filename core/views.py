@@ -40,3 +40,26 @@ def dashboard_datos(request):
         conteo = ciclo.conteo_mensajes_ia if ciclo else 0
         datos.append((empresa, conteo))
     return render(request, 'core/dashboard_filas.html', {'datos': datos})
+
+@csrf_exempt
+def vincular_whatsapp(peticion):
+    if peticion.method == 'POST':
+        try:
+            datos = json.loads(peticion.body)
+            token_acceso = datos.get('accessToken')
+            
+            waba_id = "pendiente_por_api_meta"
+            telefono_id = "pendiente_por_api_meta"
+            
+            Empresa.objects.create(
+                waba_id=waba_id, 
+                telefono_id=telefono_id, 
+                token_acceso=token_acceso, 
+                activo=True,
+                prompt_sistema_ia="Eres un asistente virtual"
+            )
+            
+            return HttpResponse(json.dumps({'estado': 'ok'}), content_type='application/json')
+        except Exception as error:
+            return HttpResponse(json.dumps({'estado': 'error', 'error': str(error)}), content_type='application/json', status=400)
+    return HttpResponse('Metodo no permitido', status=405)

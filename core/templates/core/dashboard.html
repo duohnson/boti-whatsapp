@@ -1,24 +1,89 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Boti - Dashboard</title>
     <style>
-        body { font-family: sans-serif; margin: 0; padding: 20px; background: #f4f4f9; }
-        .container { max-width: 800px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        h1 { color: #333; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
-        th { background: #eee; }
-        .btn { display: inline-block; padding: 10px 15px; background: #007BFF; color: white; text-decoration: none; border-radius: 4px; margin-top: 10px; }
-        .btn:hover { background: #0056b3; }
+        body {
+            font-family: sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f4f4f9;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            color: #333;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        th,
+        td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: left;
+        }
+
+        th {
+            background: #eee;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 10px 15px;
+            background: #007BFF;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            margin-top: 10px;
+        }
+
+        .btn:hover {
+            background: #0056b3;
+        }
+
+        .btn-fb {
+            background-color: #1877F2;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            margin-bottom: 20px;
+            display: inline-block;
+        }
+
+        .btn-fb:hover {
+            background-color: #166FE5;
+        }
     </style>
     <script src="https://unpkg.com/htmx.org@1.9.10"></script>
 </head>
+
 <body>
     <div class="container">
         <h1>Dashboard - Empresas Registradas</h1>
+
+        <button class="btn-fb" onclick="conectar_whatsapp()">+ Conectar WhatsApp (Clientes)</button>
+        <p id="mensaje-estado" style="color: green; font-weight: bold;"></p>
+
         <table>
             <thead>
                 <tr>
@@ -36,5 +101,58 @@
         </table>
         <a href="/admin/" class="btn">Ir al Panel de Administración</a>
     </div>
+
+    <script>
+        window.fbAsyncInit = function () {
+            FB.init({
+                appId: 'TU_APP_ID_DE_META',
+                cookie: true,
+                xfbml: true,
+                version: 'v19.0'
+            });
+        };
+
+        (function (d, s, id) {
+            var js, fjs = d.getElementsByTagName(s)[0];
+            if (d.getElementById(id)) return;
+            js = d.createElement(s); js.id = id;
+            js.src = "https://connect.facebook.net/es_LA/sdk.js";
+            fjs.parentNode.insertBefore(js, fjs);
+        }(document, 'script', 'facebook-jssdk'));
+
+        function conectar_whatsapp() {
+            FB.login(function (respuesta) {
+                if (respuesta.authResponse) {
+                    document.getElementById('mensaje-estado').innerText = "Conectando con el servidor...";
+                    fetch('/api/vincular-whatsapp/', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': '{{ csrf_token }}'
+                        },
+                        body: JSON.stringify({
+                            accessToken: respuesta.authResponse.accessToken
+                        })
+                    })
+                        .then(res => res.json())
+                        .then(datos => {
+                            if (datos.estado === 'ok') {
+                                document.getElementById('mensaje-estado').innerText = "WhatsApp vinculado";
+                            } else {
+                                document.getElementById('mensaje-estado').innerText = "Error: " + datos.error;
+                            }
+                        }).catch(error => {
+                            document.getElementById('mensaje-estado').innerText = "Error de red";
+                        });
+                } else {
+                    document.getElementById('mensaje-estado').innerText = "Cancelado por el usuario";
+                }
+            }, {
+                scope: 'whatsapp_business_management,whatsapp_business_messaging',
+                extras: { feature: 'whatsapp_embedded_signup' }
+            });
+        }
+    </script>
 </body>
+
 </html>
