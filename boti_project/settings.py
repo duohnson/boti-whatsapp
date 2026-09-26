@@ -26,6 +26,7 @@ SECRET_KEY = 'django-insecure-b+y*!^_v9=^3ekh!&ja5s_0wf(&ekh2hga^3n#l%99n0k-1$#v
 DEBUG = True
 
 ALLOWED_HOSTS = ['boti.duohnson.com', 'localhost', '127.0.0.1']
+CSRF_TRUSTED_ORIGINS = ['https://boti.duohnson.com']
 
 
 # Application definition
