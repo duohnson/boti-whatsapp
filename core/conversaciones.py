@@ -105,6 +105,8 @@ def procesar_mensaje_whatsapp(identificador, telefono_cliente, texto_usuario, id
         return
 
     nodo_inicial = NodoBot.objects.filter(empresa=empresa, es_nodo_inicial=True).prefetch_related('opciones_salida').first()
+    if not nodo_inicial:
+        nodo_inicial = NodoBot.objects.filter(empresa=empresa).prefetch_related('opciones_salida').order_by('pk').first()
     if creada:
         # el cliente puede saltarse el menu y arrancar directo con la ia
         if empresa.ia_desde_primer_mensaje:
