@@ -20,6 +20,18 @@ function responder(respuesta, codigo, datos) {
     respuesta.end(JSON.stringify(datos));
 }
 
+function normalizarDestinoParaEnvio(destino) {
+    const valor = String(destino || '').trim();
+    if (!valor) return '';
+    if (valor.endsWith('@lid')) {
+        const numero = valor.split('@')[0].split(':')[0];
+        return /^\d{7,20}$/.test(numero) ? `${numero}@c.us` : '';
+    }
+    if (valor.endsWith('@c.us')) return valor;
+    if (/^\+?\d{7,15}$/.test(valor)) return `${valor.replace(/\D/g, '')}@c.us`;
+    return valor;
+}
+
 function autorizado(peticion) {
     const recibido = Buffer.from(peticion.headers.authorization || '');
     const esperado = Buffer.from(`Bearer ${secreto}`);
@@ -200,12 +212,13 @@ const servidor = http.createServer(async (peticion, respuesta) => {
         if (typeof datos.texto !== 'string' || !datos.texto.trim()) {
             return responder(respuesta, 400, { error: 'Mensaje no válido' });
         }
-        const destinoChat = String(datos.destino_chat || '').trim();
-        const destinoNormalizado = String(datos.destino || '').trim();
-        const destinoFinal = destinoChat || `${destinoNormalizado.replace(/\D/g, '')}@c.us`;
-        if (!destinoChat && !/^\+?\d{7,15}$/.test(destinoNormalizado)) {
+        const destinoChat = normalizarDestinoParaEnvio(datos.destino_chat || datos.destino || '');
+        const destinoNormalizado = normalizarDestinoParaEnvio(datos.destino || '');
+        const destinoFinal = destinoChat || destinoNormalizado;
+        if (!destinoFinal) {
             return responder(respuesta, 400, { error: 'Destino o mensaje no válido' });
         }
+        console.log(`Enviando a ${destinoFinal}`);
         await cliente.sendMessage(destinoFinal, datos.texto);
         if (datos.opcion_pdf !== undefined && datos.opcion_pdf !== null) {
             if (!Number.isSafeInteger(datos.opcion_pdf) || datos.opcion_pdf < 1) {
