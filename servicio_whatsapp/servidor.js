@@ -1,9 +1,10 @@
 const http = require('node:http');
 const fs = require('node:fs/promises');
 const path = require('node:path');
-const { timingSafeEqual } = require('node:crypto');
+const { createHash, timingSafeEqual } = require('node:crypto');
 const { Client, LocalAuth, MessageMedia } = require('whatsapp-web.js');
 const codigoQr = require('qrcode');
+const { resolverDestinoParaEnvio } = require('./destinos');
 
 const clientes = new Map();
 const puerto = Number(process.env.PUERTO_WHATSAPP || 11223);
@@ -18,18 +19,6 @@ if (!secreto) throw new Error('Falta configurar WHATSAPP_INTERNAL_SECRET');
 function responder(respuesta, codigo, datos) {
     respuesta.writeHead(codigo, { 'Content-Type': 'application/json' });
     respuesta.end(JSON.stringify(datos));
-}
-
-function normalizarDestinoParaEnvio(destino) {
-    const valor = String(destino || '').trim();
-    if (!valor) return '';
-    if (valor.endsWith('@lid')) {
-        const numero = valor.split('@')[0].split(':')[0];
-        return /^\d{7,20}$/.test(numero) ? `${numero}@c.us` : '';
-    }
-    if (valor.endsWith('@c.us')) return valor;
-    if (/^\+?\d{7,15}$/.test(valor)) return `${valor.replace(/\D/g, '')}@c.us`;
-    return valor;
 }
 
 function autorizado(peticion) {
@@ -94,46 +83,29 @@ function crearSesion(identificador) {
         if (mensaje.fromMe || !mensaje.body?.trim()) return;
         const origen = mensaje.from || '';
         if (!origen.endsWith('@c.us') && !origen.endsWith('@lid')) return;
-        const telefono = origen.split('@')[0].split(':')[0];
-        if (!/^\d{7,20}$/.test(telefono)) {
-            console.error(`Origen no numerico ${identificador}: ${origen}`);
-            return;
+        let contacto;
+        try {
+            [contacto] = await cliente.getContactLidAndPhone([origen]);
+        } catch (error) {
+            console.warn(`No se pudo resolver el contacto ${origen}: ${error.message}`);
         }
+        const jidTelefono = contacto?.pn || (origen.endsWith('@c.us') ? origen : '');
+        const telefono = jidTelefono.split('@')[0].split(':')[0] || origen.split('@')[0].split(':')[0];
+        const idMensaje = mensaje.id?._serialized || createHash('sha256')
+            .update(`${origen}|${mensaje.timestamp || ''}|${mensaje.body}`)
+            .digest('hex');
         try {
             await avisarDjango({
                 tipo: 'mensaje',
                 identificador,
-                id_mensaje: mensaje.id?._serialized || '',
+                id_mensaje: idMensaje,
                 telefono_cliente: telefono,
-                destino: origen,
+                destino: contacto?.lid || origen,
                 texto: mensaje.body,
                 fecha: mensaje.timestamp
             });
         } catch (error) {
             console.error(`No se pudo procesar un mensaje de ${identificador}: ${error.message}`);
-        }
-    });
-    cliente.on('message_create', async (mensaje) => {
-        if (mensaje.fromMe || !mensaje.body?.trim()) return;
-        const origen = mensaje.from || '';
-        if (!origen.endsWith('@c.us') && !origen.endsWith('@lid')) return;
-        const telefono = origen.split('@')[0].split(':')[0];
-        if (!/^\d{7,20}$/.test(telefono)) {
-            console.error(`Origen no numerico ${identificador}: ${origen}`);
-            return;
-        }
-        try {
-            await avisarDjango({
-                tipo: 'mensaje',
-                identificador,
-                id_mensaje: mensaje.id?._serialized || '',
-                telefono_cliente: telefono,
-                destino: origen,
-                texto: mensaje.body,
-                fecha: mensaje.timestamp
-            });
-        } catch (error) {
-            console.error(`No se pudo procesar message_create de ${identificador}: ${error.message}`);
         }
     });
     cliente.initialize().catch((error) => {
@@ -212,14 +184,14 @@ const servidor = http.createServer(async (peticion, respuesta) => {
         if (typeof datos.texto !== 'string' || !datos.texto.trim()) {
             return responder(respuesta, 400, { error: 'Mensaje no válido' });
         }
-        const destinoChat = normalizarDestinoParaEnvio(datos.destino_chat || datos.destino || '');
-        const destinoNormalizado = normalizarDestinoParaEnvio(datos.destino || '');
-        const destinoFinal = destinoChat || destinoNormalizado;
+        const destinoChat = datos.destino_chat || datos.destino || '';
+        const destinoFinal = await resolverDestinoParaEnvio(cliente, destinoChat);
         if (!destinoFinal) {
             return responder(respuesta, 400, { error: 'Destino o mensaje no válido' });
         }
         console.log(`Enviando a ${destinoFinal}`);
-        await cliente.sendMessage(destinoFinal, datos.texto);
+        const mensajeEnviado = await cliente.sendMessage(destinoFinal, datos.texto);
+        if (!mensajeEnviado) throw new Error(`WhatsApp no creó el mensaje para ${destinoFinal}`);
         if (datos.opcion_pdf !== undefined && datos.opcion_pdf !== null) {
             if (!Number.isSafeInteger(datos.opcion_pdf) || datos.opcion_pdf < 1) {
                 return responder(respuesta, 400, { error: 'Identificador de PDF no válido' });
@@ -234,11 +206,12 @@ const servidor = http.createServer(async (peticion, respuesta) => {
             if (!respuestaPdf.ok) throw new Error(`Django no pudo entregar el PDF: ${respuestaPdf.status}`);
             const pdf = Buffer.from(await respuestaPdf.arrayBuffer());
             const documento = new MessageMedia('application/pdf', pdf.toString('base64'), `opcion-${datos.opcion_pdf}.pdf`);
-            await cliente.sendMessage(destinoFinal, documento);
+            const pdfEnviado = await cliente.sendMessage(destinoFinal, documento);
+            if (!pdfEnviado) throw new Error(`WhatsApp no creó el PDF para ${destinoFinal}`);
         }
         return responder(respuesta, 200, { estado: 'enviado' });
     } catch (error) {
-        console.error(error.message);
+        console.error(`Error en servicio WhatsApp: ${error.stack || error.message}`);
         return responder(respuesta, 500, { error: 'Error en el servicio de WhatsApp' });
     }
 });
