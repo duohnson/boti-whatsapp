@@ -10,6 +10,8 @@ const puerto = Number(process.env.PUERTO_WHATSAPP || 11223);
 const secreto = process.env.WHATSAPP_INTERNAL_SECRET || '';
 const urlDjango = (process.env.DJANGO_URL_INTERNA || 'http://127.0.0.1:7213').replace(/\/$/, '');
 const carpetaSesiones = process.env.WHATSAPP_SESSION_DIR || path.join(__dirname, 'sesiones_whatsapp');
+const reintentosSesion = Number(process.env.WHATSAPP_SESION_REINTENTOS || 20);
+const esperaSesionMs = Number(process.env.WHATSAPP_SESION_RETRY_MS || 3000);
 
 if (!secreto) throw new Error('Falta configurar WHATSAPP_INTERNAL_SECRET');
 
@@ -146,16 +148,31 @@ async function desconectarSesion(identificador) {
 }
 
 async function recuperarSesiones() {
+    const respuesta = await fetch(`${urlDjango}/api/interno/whatsapp/sesiones/`, {
+        headers: { 'Authorization': `Bearer ${secreto}` },
+        signal: AbortSignal.timeout(15000)
+    });
+    if (!respuesta.ok) throw new Error(`Django respondió ${respuesta.status}`);
+    const datos = await respuesta.json();
+    for (const identificador of datos.identificadores) crearSesion(identificador);
+    return datos.identificadores || [];
+}
+
+async function iniciarRecuperacionSesiones(intento = 1) {
     try {
-        const respuesta = await fetch(`${urlDjango}/api/interno/whatsapp/sesiones/`, {
-            headers: { 'Authorization': `Bearer ${secreto}` },
-            signal: AbortSignal.timeout(10000)
-        });
-        if (!respuesta.ok) throw new Error(`Django respondió ${respuesta.status}`);
-        const datos = await respuesta.json();
-        for (const identificador of datos.identificadores) crearSesion(identificador);
+        const sesiones = await recuperarSesiones();
+        if (sesiones.length) {
+            console.log(`Sesiones recuperadas: ${sesiones.length}`);
+        }
+        return true;
     } catch (error) {
-        console.error(`No se pudieron recuperar las sesiones: ${error.message}`);
+        if (intento < reintentosSesion) {
+            console.warn(`No se pudieron recuperar las sesiones (intento ${intento}/${reintentosSesion}): ${error.message}. Reintentando en ${esperaSesionMs} ms...`);
+            setTimeout(() => iniciarRecuperacionSesiones(intento + 1), esperaSesionMs);
+            return false;
+        }
+        console.error(`No se pudieron recuperar las sesiones tras ${reintentosSesion} intentos: ${error.message}`);
+        return false;
     }
 }
 
@@ -215,7 +232,7 @@ const servidor = http.createServer(async (peticion, respuesta) => {
 
 servidor.listen(puerto, '127.0.0.1', () => {
     console.log(`Servicio WhatsApp escuchando en 127.0.0.1:${puerto}`);
-    recuperarSesiones();
+    iniciarRecuperacionSesiones();
 });
 
 async function cerrarServicio() {
