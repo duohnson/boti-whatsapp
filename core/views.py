@@ -11,7 +11,7 @@ def webhook_whatsapp(request):
         challenge = request.GET.get('hub.challenge')
         
         if mode == 'subscribe' and token == 'boti_token_secreto':
-            return HttpResponse(challenge, status=200)
+            return HttpResponse(int(challenge), content_type="text/plain", status=200)
         return HttpResponse('Error', status=403)
         
     if request.method == 'POST':
