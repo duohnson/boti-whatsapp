@@ -321,3 +321,5 @@ def archivo_opcion_interno(request, identificador, opcion_id):
     if not opcion.archivo_pdf:
         return JsonResponse({'error': 'Esta opción no tiene PDF'}, status=404)
     return FileResponse(opcion.archivo_pdf.open('rb'), as_attachment=True, filename=opcion.archivo_pdf.name.rsplit('/', 1)[-1], content_type='application/pdf')
+
+

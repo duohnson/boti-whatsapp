@@ -229,3 +229,4 @@ async function cerrarServicio() {
 
 process.on('SIGINT', cerrarServicio);
 process.on('SIGTERM', cerrarServicio);
+

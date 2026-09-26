@@ -240,3 +240,4 @@ def procesar_mensaje_whatsapp(identificador, telefono_cliente, texto_usuario, id
             enviar_respuesta_de_nodo(nodo_actual, None, sesion_whatsapp, telefono_cliente, destino_chat)
     else:
         enviar_respuesta_de_nodo(nodo_actual, None, sesion_whatsapp, telefono_cliente, destino_chat)
+
