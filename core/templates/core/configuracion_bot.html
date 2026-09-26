@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Configurar bot</title>
+    <style>
+        :root { color-scheme: light; --verde: #147d55; --tinta: #19312a; --suave: #60746a; --borde: #e1e9e4; }
+        * { box-sizing: border-box; }
+        body { margin: 0; background: #f3f6f4; color: var(--tinta); font-family: system-ui, sans-serif; }
+        main { max-width: 1050px; margin: 36px auto; padding: 0 18px 48px; }
+        header, section, article { background: white; border: 1px solid var(--borde); border-radius: 14px; padding: 22px; margin-bottom: 18px; }
+        h1, h2, h3 { margin-top: 0; }
+        p, small { color: var(--suave); }
+        form { margin: 14px 0; }
+        label { display: block; margin: 12px 0 5px; font-weight: 600; }
+        input:not([type=checkbox]):not([type=file]), select, textarea { width: 100%; padding: 10px; border: 1px solid #ccd8d0; border-radius: 8px; font: inherit; }
+        input[type=checkbox] { margin-right: 8px; }
+        button, a.boton { display: inline-block; padding: 10px 14px; background: var(--verde); color: white; border: 0; border-radius: 8px; font: inherit; text-decoration: none; cursor: pointer; }
+        button.secundario, a.secundario { color: var(--tinta); background: #eaf0ec; }
+        button.eliminar { background: #a23c2f; }
+        details { border-top: 1px solid var(--borde); padding-top: 12px; margin-top: 14px; }
+        .fila { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+        .opcion { background: #f7f9f8; padding: 14px; border-radius: 10px; margin: 12px 0; }
+        .acciones { display: flex; gap: 9px; flex-wrap: wrap; }
+        @media (max-width: 650px) { .fila { grid-template-columns: 1fr; } header, section, article { padding: 17px; } }
+    </style>
+</head>
+<body>
+<main>
+    <header>
+        <a class="boton secundario" href="{% url 'dashboard' %}">Volver al panel</a>
+        <h1>Configura tu asistente</h1>
+        <p>Define el contexto de la IA y los pasos automáticos. El cliente elige respondiendo con el número o el texto de una opción.</p>
+        {% for mensaje in messages %}<p>{{ mensaje }}</p>{% endfor %}
+    </header>
+    <section>
+        <h2>Comportamiento e instrucciones</h2>
+        <form method="post">{% csrf_token %}{{ formulario.as_p }}<button type="submit">Guardar configuración</button></form>
+    </section>
+    <section>
+        <h2>Agregar un paso</h2>
+        <p>Un paso puede mostrar texto, responder con IA, esperar a un agente o finalizar el chat. Marca una bienvenida para escoger el inicio del flujo.</p>
+        <form method="post" action="{% url 'crear_nodo' %}">{% csrf_token %}{{ formulario_nodo.as_p }}<button type="submit">Agregar paso</button></form>
+    </section>
+    <section>
+        <h2>Tu flujo</h2>
+        {% for paso in pasos %}
+        <article>
+            <h3>{{ paso.objeto.nombre }}{% if paso.objeto.es_nodo_inicial %} · Bienvenida{% endif %}</h3>
+            <form method="post" action="{% url 'guardar_nodo' paso.objeto.pk %}">{% csrf_token %}{{ paso.formulario.as_p }}<div class="acciones"><button type="submit">Guardar paso</button></div></form>
+            {% for opcion in paso.opciones %}
+            <div class="opcion">
+                <strong>Opción: {{ opcion.objeto.etiqueta|default:opcion.objeto.entrada_esperada }}</strong>
+                <form method="post" enctype="multipart/form-data" action="{% url 'guardar_opcion' paso.objeto.pk opcion.objeto.pk %}">{% csrf_token %}{{ opcion.formulario.as_p }}<div class="acciones"><button type="submit">Guardar opción</button></div></form>
+                <form method="post" action="{% url 'eliminar_opcion' paso.objeto.pk opcion.objeto.pk %}">{% csrf_token %}<button class="eliminar" type="submit">Eliminar opción</button></form>
+            </div>
+            {% endfor %}
+            <details>
+                <summary>Agregar opción a «{{ paso.objeto.nombre }}»</summary>
+                <form method="post" enctype="multipart/form-data" action="{% url 'crear_opcion' paso.objeto.pk %}">{% csrf_token %}{{ paso.formulario_opcion.as_p }}<button type="submit">Agregar opción</button></form>
+            </details>
+            <form method="post" action="{% url 'eliminar_nodo' paso.objeto.pk %}">{% csrf_token %}<button class="eliminar" type="submit">Eliminar paso y sus opciones</button></form>
+        </article>
+        {% empty %}
+        <p>Aún no hay pasos. Crea uno arriba. Si activas IA desde el primer mensaje no necesitas bienvenida.</p>
+        {% endfor %}
+    </section>
+    <footer><a class="boton secundario" href="{% url 'atencion_humana' %}">Abrir conversaciones para atención humana</a></footer>
+</main>
+</body>
+</html>

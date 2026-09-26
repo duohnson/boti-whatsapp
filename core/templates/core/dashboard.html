@@ -1,158 +1,83 @@
 <!DOCTYPE html>
 <html lang="es">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Boti - Dashboard</title>
+    <title>Panel de WhatsApp</title>
     <style>
-        body {
-            font-family: sans-serif;
-            margin: 0;
-            padding: 20px;
-            background: #f4f4f9;
-        }
-
-        .container {
-            max-width: 800px;
-            margin: auto;
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        }
-
-        h1 {
-            color: #333;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
-        }
-
-        th,
-        td {
-            border: 1px solid #ddd;
-            padding: 10px;
-            text-align: left;
-        }
-
-        th {
-            background: #eee;
-        }
-
-        .btn {
-            display: inline-block;
-            padding: 10px 15px;
-            background: #007BFF;
-            color: white;
-            text-decoration: none;
-            border-radius: 4px;
-            margin-top: 10px;
-        }
-
-        .btn:hover {
-            background: #0056b3;
-        }
-
-        .btn-fb {
-            background-color: #1877F2;
-            color: white;
-            border: none;
-            padding: 12px 24px;
-            font-size: 16px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: bold;
-            margin-bottom: 20px;
-            display: inline-block;
-        }
-
-        .btn-fb:hover {
-            background-color: #166FE5;
-        }
+        body { margin: 0; background: #f3f6f4; color: #19312a; font-family: system-ui, sans-serif; }
+        main { max-width: 760px; margin: 48px auto; padding: 0 20px; }
+        .tarjeta { background: #fff; border: 1px solid #e1e9e4; border-radius: 16px; padding: 28px; box-shadow: 0 12px 36px #19312a0b; }
+        h1 { margin: 0 0 8px; font-size: 28px; }
+        p { color: #60746a; }
+        .estado { margin: 24px 0; padding: 14px; border-radius: 10px; background: #f3f6f4; }
+        .acciones { display: flex; gap: 10px; flex-wrap: wrap; }
+        button, a { border: 0; border-radius: 9px; padding: 11px 16px; font: inherit; text-decoration: none; cursor: pointer; }
+        button { color: white; background: #147d55; }
+        button.secundario { color: #284238; background: #eaf0ec; }
+        #codigo-qr { display: none; width: 260px; max-width: 100%; margin: 20px auto; }
+        #mensaje { min-height: 24px; color: #a23c2f; }
+        .pie { display: flex; justify-content: space-between; align-items: center; margin-top: 22px; color: #60746a; font-size: 14px; }
+        @media (max-width: 520px) { main { margin: 20px auto; } .tarjeta { padding: 20px; } .pie { align-items: flex-start; gap: 16px; flex-direction: column; } }
     </style>
-    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
 </head>
-
 <body>
-    <div class="container">
-        <h1>Dashboard - Empresas Registradas</h1>
-
-        <button class="btn-fb" onclick="conectar_whatsapp()">+ Conectar WhatsApp (Clientes)</button>
-        <p id="mensaje-estado" style="color: green; font-weight: bold;"></p>
-
-        <table>
-            <thead>
-                <tr>
-                    <th>WABA ID</th>
-                    <th>Teléfono ID</th>
-                    <th>Estado</th>
-                    <th>Mensajes IA (Mes Actual)</th>
-                </tr>
-            </thead>
-            <tbody htmx-get="/api/dashboard-datos/" htmx-trigger="load, every 10s">
-                <tr>
-                    <td colspan="4">Cargando datos...</td>
-                </tr>
-            </tbody>
-        </table>
-        <a href="/admin/" class="btn">Ir al Panel de Administración</a>
-    </div>
-
+    <main>
+        <section class="tarjeta">
+            <h1>Conexión de WhatsApp</h1>
+            <p>Conecta tu número escaneando el código QR desde la aplicación de WhatsApp.</p>
+            <div class="estado">Estado: <strong id="estado">{{ sesion.get_estado_display|default:"Desconectado" }}</strong><br>Número: <span id="numero">{{ sesion.numero_telefono|default:"—" }}</span></div>
+            <img id="codigo-qr" alt="Código QR para conectar WhatsApp">
+            <p id="instruccion" hidden>En WhatsApp, abre Dispositivos vinculados y escanea este código.</p>
+            <p id="mensaje" role="status"></p>
+            <div class="acciones">
+                <button id="conectar">Conectar WhatsApp</button>
+                <button id="desconectar" class="secundario">Desconectar</button>
+            </div>
+            <div class="acciones" style="margin-top: 14px;">
+                <a class="btn secundario" href="{% url 'configuracion_bot' %}">Configurar bienvenida, opciones e IA</a>
+                <a class="btn secundario" href="{% url 'atencion_humana' %}">Conversaciones con personas</a>
+            </div>
+            <div class="pie"><span>Mensajes de IA este mes: {{ mensajes_ia }}</span><form method="post" action="{% url 'salir' %}">{% csrf_token %}<button class="secundario" type="submit">Cerrar sesión</button></form></div>
+        </section>
+    </main>
+    <form id="proteccion-csrf" hidden>{% csrf_token %}</form>
     <script>
-        window.fbAsyncInit = function () {
-            FB.init({
-                appId: '1087839803973466',
-                cookie: true,
-                xfbml: true,
-                version: 'v19.0'
-            });
+        const csrf = document.querySelector('#proteccion-csrf [name=csrfmiddlewaretoken]').value;
+        const estados = {
+            desconectado: 'Desconectado', esperando_qr: 'Esperando código QR', conectado: 'Conectado',
+            autenticando: 'Autenticando', error: 'Error de conexión'
         };
 
-        (function (d, s, id) {
-            var js, fjs = d.getElementsByTagName(s)[0];
-            if (d.getElementById(id)) return;
-            js = d.createElement(s); js.id = id;
-            js.src = "https://connect.facebook.net/es_LA/sdk.js";
-            fjs.parentNode.insertBefore(js, fjs);
-        }(document, 'script', 'facebook-jssdk'));
-
-        function conectar_whatsapp() {
-            FB.login(function (respuesta) {
-                if (respuesta.authResponse) {
-                    document.getElementById('mensaje-estado').innerText = "Conectando con el servidor...";
-                    fetch('/api/vincular-whatsapp/', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-CSRFToken': '{{ csrf_token }}'
-                        },
-                        body: JSON.stringify({
-                            accessToken: respuesta.authResponse.accessToken
-                        })
-                    })
-                        .then(res => res.json())
-                        .then(datos => {
-                            if (datos.estado === 'ok') {
-                                document.getElementById('mensaje-estado').innerText = "WhatsApp vinculado";
-                            } else {
-                                document.getElementById('mensaje-estado').innerText = "Error: " + datos.error;
-                            }
-                        }).catch(error => {
-                            document.getElementById('mensaje-estado').innerText = "Error de red";
-                        });
-                } else {
-                    document.getElementById('mensaje-estado').innerText = "Cancelado por el usuario";
-                }
-            }, {
-                scope: 'whatsapp_business_management,whatsapp_business_messaging',
-                extras: { feature: 'whatsapp_embedded_signup' }
-            });
+        async function actualizar_estado() {
+            const respuesta = await fetch('{% url "estado_whatsapp" %}');
+            const datos = await respuesta.json();
+            document.getElementById('estado').textContent = estados[datos.estado] || datos.estado;
+            document.getElementById('numero').textContent = datos.numero_telefono || '—';
+            const imagen = document.getElementById('codigo-qr');
+            imagen.hidden = !datos.codigo_qr;
+            imagen.style.display = datos.codigo_qr ? 'block' : 'none';
+            imagen.src = datos.codigo_qr || '';
+            document.getElementById('instruccion').hidden = !datos.codigo_qr;
         }
+
+        async function enviar_accion(url) {
+            const mensaje = document.getElementById('mensaje');
+            mensaje.textContent = '';
+            try {
+                const respuesta = await fetch(url, { method: 'POST', headers: { 'X-CSRFToken': csrf } });
+                const datos = await respuesta.json();
+                if (!respuesta.ok) mensaje.textContent = datos.error || 'No se pudo completar la acción.';
+                await actualizar_estado();
+            } catch {
+                mensaje.textContent = 'No se pudo contactar con el servidor.';
+            }
+        }
+
+        document.getElementById('conectar').addEventListener('click', () => enviar_accion('{% url "conectar_whatsapp" %}'));
+        document.getElementById('desconectar').addEventListener('click', () => enviar_accion('{% url "desconectar_whatsapp" %}'));
+        actualizar_estado();
+        window.setInterval(actualizar_estado, 2500);
     </script>
 </body>
-
 </html>

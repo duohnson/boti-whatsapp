@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Atención humana</title>
+    <style>
+        body { margin: 0; background: #f3f6f4; color: #19312a; font-family: system-ui, sans-serif; }
+        main { max-width: 920px; margin: 36px auto; padding: 0 18px 48px; }
+        header, article { background: white; border: 1px solid #e1e9e4; border-radius: 14px; padding: 22px; margin-bottom: 16px; }
+        .mensaje { max-width: 82%; padding: 10px 13px; margin: 8px 0; border-radius: 12px; background: #edf2ee; white-space: pre-wrap; overflow-wrap: anywhere; }
+        .user { margin-left: auto; background: #e1f4e8; }
+        .meta { color: #60746a; font-size: 13px; }
+        textarea { box-sizing: border-box; width: 100%; padding: 10px; border: 1px solid #ccd8d0; border-radius: 8px; font: inherit; }
+        button, a { display: inline-block; padding: 10px 14px; background: #147d55; color: white; border: 0; border-radius: 8px; font: inherit; text-decoration: none; cursor: pointer; }
+        button.secundario, a.secundario { background: #eaf0ec; color: #19312a; }
+        .acciones { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+    </style>
+</head>
+<body>
+<main>
+    <header><a class="secundario" href="{% url 'dashboard' %}">Volver al panel</a><h1>Conversaciones</h1><p>Los chats en atención humana no reciben respuestas automáticas. Responde aquí o devuelve el chat al bot.</p></header>
+    {% for conversacion in conversaciones %}
+    <article>
+        <h2>{{ conversacion.telefono_cliente }}</h2>
+        <p class="meta">Estado: {{ conversacion.get_estado_display }} · Actividad: {{ conversacion.ultima_actividad }}</p>
+        {% for mensaje in conversacion.historialchat_set.all %}
+        <div class="mensaje {% if mensaje.rol == 'user' %}user{% endif %}"><span class="meta">{{ mensaje.get_rol_display }}</span><br>{{ mensaje.contenido }}</div>
+        {% empty %}<p>Aún no hay mensajes guardados.</p>{% endfor %}
+        {% if conversacion.estado == 'humano' %}
+        <form method="post" action="{% url 'responder_agente' conversacion.pk %}">{% csrf_token %}<label for="texto-{{ conversacion.pk }}">Tu respuesta</label><textarea id="texto-{{ conversacion.pk }}" name="texto" rows="3" required maxlength="4000"></textarea><div class="acciones"><button type="submit">Enviar respuesta</button></div></form>
+        <div class="acciones">
+            <form method="post" action="{% url 'cambiar_estado_conversacion' conversacion.pk 'bot' %}">{% csrf_token %}<button class="secundario" type="submit">Devolver al bot</button></form>
+            <form method="post" action="{% url 'cambiar_estado_conversacion' conversacion.pk 'cerrada' %}">{% csrf_token %}<button class="secundario" type="submit">Finalizar conversación</button></form>
+        </div>
+        {% else %}
+        <form method="post" action="{% url 'cambiar_estado_conversacion' conversacion.pk 'bot' %}">{% csrf_token %}<button type="submit">Reabrir con el bot</button></form>
+        {% endif %}
+    </article>
+    {% empty %}<article><p>No hay conversaciones pendientes ni finalizadas.</p></article>{% endfor %}
+</main>
+</body>
+</html>

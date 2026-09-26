@@ -1,19 +1,27 @@
 import requests
 from django.conf import settings
-from .models import Empresa
 
-def enviar_mensaje_whatsapp(waba_id, telefono_id, token, destino, texto):
-    url = f"https://graph.facebook.com/v17.0/{telefono_id}/messages"
+def solicitar_whatsapp(ruta, datos=None, metodo='post'):
+    # django solo habla con el servicio local usando este secreto
+    secreto = settings.WHATSAPP_INTERNAL_SECRET
+    if not secreto:
+        raise RuntimeError('Falta configurar WHATSAPP_INTERNAL_SECRET')
+
+    url = f"{settings.WHATSAPP_NODE_URL.rstrip('/')}{ruta}"
     headers = {
-        "Authorization": f"Bearer {token}",
+        "Authorization": f"Bearer {secreto}",
         "Content-Type": "application/json"
     }
-    payload = {
-        "messaging_product": "whatsapp",
-        "recipient_type": "individual",
-        "to": destino,
-        "type": "text",
-        "text": {"preview_url": False, "body": texto}
-    }
-    respuesta = requests.post(url, headers=headers, json=payload)
-    return respuesta.json()
+    respuesta = requests.request(metodo, url, headers=headers, json=datos, timeout=20)
+    respuesta.raise_for_status()
+    return respuesta.json() if respuesta.content else {}
+
+def enviar_mensaje_whatsapp(sesion, destino, texto, opcion_pdf=None):
+    # mando el id de sesion para no cruzar numeros de clientes
+    datos = {'destino': destino, 'texto': texto}
+    if opcion_pdf:
+        datos['opcion_pdf'] = opcion_pdf
+    return solicitar_whatsapp(
+        f'/api/sesiones/{sesion.identificador}/mensajes/',
+        datos,
+    )

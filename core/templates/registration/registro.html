@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crear cuenta</title>
+    <style>
+        body { display: grid; min-height: 100vh; place-items: center; margin: 0; background: #f3f6f4; color: #19312a; font-family: system-ui, sans-serif; }
+        main { width: min(400px, calc(100% - 40px)); padding: 28px; background: white; border: 1px solid #e1e9e4; border-radius: 14px; }
+        label { display: block; margin-top: 15px; font-size: 14px; }
+        input { box-sizing: border-box; width: 100%; margin-top: 6px; padding: 10px; border: 1px solid #ccd8d0; border-radius: 8px; font: inherit; }
+        button, a { display: inline-block; margin-top: 18px; padding: 11px 15px; color: white; background: #147d55; border: 0; border-radius: 8px; font: inherit; text-decoration: none; cursor: pointer; }
+        a { color: #19312a; background: #eaf0ec; }
+        .helptext { color: #60746a; font-size: 13px; }
+        .errorlist { color: #a23c2f; }
+    </style>
+</head>
+<body>
+    <main>
+        <h1>Crear cuenta</h1>
+        <p>Regístrate para configurar tu bot y conectar tu número.</p>
+        <form method="post">{% csrf_token %}{{ formulario.non_field_errors }}
+            {% for campo in formulario %}<label for="{{ campo.id_for_label }}">{{ campo.label }}</label>{{ campo }}{{ campo.errors }}{% if campo.help_text %}<div class="helptext">{{ campo.help_text }}</div>{% endif %}{% endfor %}
+            <button type="submit">Crear cuenta</button>
+        </form>
+        <a href="{% url 'ingresar' %}">Ya tengo cuenta</a>
+    </main>
+</body>
+</html>

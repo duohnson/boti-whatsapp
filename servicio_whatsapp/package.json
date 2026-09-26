@@ -1,0 +1,13 @@
+{
+  "name": "servicio-whatsapp",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Proceso WhatsApp Web para el panel Django",
+  "scripts": {
+    "start": "node servidor.js"
+  },
+  "dependencies": {
+    "qrcode": "^1.5.4",
+    "whatsapp-web.js": "^1.34.7"
+  }
+}

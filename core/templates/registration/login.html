@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ingresar</title>
+    <style>
+        body { display: grid; min-height: 100vh; place-items: center; margin: 0; background: #f3f6f4; color: #19312a; font-family: system-ui, sans-serif; }
+        main { width: min(360px, calc(100% - 40px)); padding: 28px; background: white; border: 1px solid #e1e9e4; border-radius: 14px; }
+        label { display: block; margin-top: 16px; font-size: 14px; }
+        input { box-sizing: border-box; width: 100%; margin-top: 6px; padding: 10px; border: 1px solid #ccd8d0; border-radius: 8px; font: inherit; }
+        button { width: 100%; margin-top: 20px; padding: 11px; color: white; background: #147d55; border: 0; border-radius: 8px; font: inherit; cursor: pointer; }
+        .errorlist { color: #a23c2f; }
+    </style>
+</head>
+<body>
+    <main>
+        <h1>Ingresar al panel</h1>
+        <form method="post">{% csrf_token %}{{ form.non_field_errors }}
+            <label for="id_username">Usuario</label>{{ form.username }}
+            <label for="id_password">Contraseña</label>{{ form.password }}
+            <input type="hidden" name="next" value="{{ next }}">
+            <button type="submit">Ingresar</button>
+        </form>
+        <p><a href="{% url 'registro' %}">Crear cuenta nueva</a></p>
+    </main>
+</body>
+</html>
