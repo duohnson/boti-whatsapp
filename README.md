@@ -6,7 +6,7 @@ Listo para descargar y crear tu propia plataforma de chatbot.
 
 ATENCIÓN: Es básico, apenas para ahorrarse la creación de nodos y continuarlo, logins no poseen Auth de 2 pasos ni seguridad, no hacer deploy, es para continuar programando o reutilizarse en distintos proyectos que incluyan chatbots de whatsapp + modelos IA.
 
-El sistema opera bajo la licencia [GPL-3.0](#LICENSE).
+El sistema opera bajo la licencia [MIT](LICENSE).
 
 Plataforma multi-tenant para chatbots, con flujos personalizables, integración de IA (OpenAI, Gemini y Claude) y atención de servicio al cliente para soporte web. Cada usuario registra su propia cuenta, conecta su número de WhatsApp mediante código QR y crea su árbol de flujos y respuesta desde un panel web.
 
@@ -233,4 +233,4 @@ Es de suma importancia que la variable WHATSAPP_INTERNAL_SECRET sea segura y ale
 
 ## Licencia
 
-Este proyecto está licenciado bajo la Licencia Pública General de GNU v3.0 (GPL-3.0). Consulta el archivo LICENSE para más detalles.
+Este proyecto está licenciado bajo la Licencia MIT. Consulta el archivo LICENSE para más detalles.
