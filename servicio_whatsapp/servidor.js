@@ -15,17 +15,23 @@ const reintentosSesion = Number(process.env.WHATSAPP_SESION_REINTENTOS || 20);
 const esperaSesionMs = Number(process.env.WHATSAPP_SESION_RETRY_MS || 3000);
 
 if (!secreto) throw new Error('Falta configurar WHATSAPP_INTERNAL_SECRET');
+// al no configurar el secreto, el servicio no autentica las solicitudes internas
+
 
 function responder(respuesta, codigo, datos) {
     respuesta.writeHead(codigo, { 'Content-Type': 'application/json' });
     respuesta.end(JSON.stringify(datos));
 }
+// respuesta helper functions
+
 
 function autorizado(peticion) {
     const recibido = Buffer.from(peticion.headers.authorization || '');
     const esperado = Buffer.from(`Bearer ${secreto}`);
     return recibido.length === esperado.length && timingSafeEqual(recibido, esperado);
 }
+// autorización helper functions
+
 
 async function leerJson(peticion) {
     let cuerpo = '';
@@ -35,6 +41,7 @@ async function leerJson(peticion) {
     }
     return cuerpo ? JSON.parse(cuerpo) : {};
 }
+// lectura helper functions
 
 async function avisarDjango(datos) {
     const respuesta = await fetch(`${urlDjango}/api/interno/whatsapp/evento/`, {
@@ -46,7 +53,9 @@ async function avisarDjango(datos) {
     if (!respuesta.ok) throw new Error(`Django respondió ${respuesta.status}`);
     return respuesta.json();
 }
+// comunicacion con django helper functions
 
+// sesiones de clientes helper functions
 function crearSesion(identificador) {
     if (clientes.has(identificador)) return clientes.get(identificador);
     const cliente = new Client({
@@ -54,6 +63,7 @@ function crearSesion(identificador) {
         puppeteer: { headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox'] }
     });
     clientes.set(identificador, cliente);
+    // SI YA EXISTE UNA SESION SE REUTIILZA, PARA NO ESTAR CREANDO NUEVAS SESIONES INNECESARIAMENTe
     cliente.on('qr', async (valor) => {
         try {
             const imagen = await codigoQr.toDataURL(valor);
@@ -88,6 +98,7 @@ function crearSesion(identificador) {
             [contacto] = await cliente.getContactLidAndPhone([origen]);
         } catch (error) {
             console.warn(`No se pudo resolver el contacto ${origen}: ${error.message}`);
+            // continua con informacion minima si no resuelve
         }
         const jidTelefono = contacto?.pn || (origen.endsWith('@c.us') ? origen : '');
         const telefono = jidTelefono.split('@')[0].split(':')[0] || origen.split('@')[0].split(':')[0];
@@ -189,6 +200,7 @@ const servidor = http.createServer(async (peticion, respuesta) => {
         if (!destinoFinal) {
             return responder(respuesta, 400, { error: 'Destino o mensaje no válido' });
         }
+        // log del mensaje antes de enviarlo
         console.log(`Enviando a ${destinoFinal}`);
         const mensajeEnviado = await cliente.sendMessage(destinoFinal, datos.texto);
         if (!mensajeEnviado) throw new Error(`WhatsApp no creó el mensaje para ${destinoFinal}`);
@@ -226,7 +238,7 @@ async function cerrarServicio() {
     await Promise.all([...clientes.values()].map((cliente) => cliente.destroy().catch(() => {})));
     process.exit(0);
 }
-
+// manejo de cierre del servicio y limpieza de clientes
 process.on('SIGINT', cerrarServicio);
 process.on('SIGTERM', cerrarServicio);
 
