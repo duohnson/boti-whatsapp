@@ -9,6 +9,7 @@ logger = logging.getLogger(__name__)
 
 
 def mensaje_con_opciones(nodo):
+    # mostrar las conexiones configuradas desde este paso
     opciones = list(nodo.opciones_salida.filter(nodo_siguiente__empresa_id=nodo.empresa_id).order_by('pk'))
     if not opciones:
         return nodo.contenido_mensaje
@@ -32,12 +33,14 @@ def guardar_mensaje_cliente(sesion, texto, identificador):
 
 
 def responder_con_ia(empresa, sesion, sesion_whatsapp, ahora, opcion_pdf=None):
+    # preparar el historial para el proveedor de ia
     historial = HistorialChat.objects.filter(sesion_usuario=sesion).order_by('fecha')
     mensajes = [{'role': 'system', 'content': empresa.prompt_sistema_ia}]
     for item in historial:
         rol = 'user' if item.rol == 'user' else 'assistant'
         mensajes.append({'role': rol, 'content': item.contenido})
 
+    # bloquear el consumo para no superar el limite con mensajes simultaneos
     empresa = Empresa.objects.select_for_update().get(pk=empresa.pk)
     if empresa.respuestas_ia_utilizadas >= empresa.limite_respuestas_ia:
         enviar_respuesta_de_nodo_texto(
@@ -57,6 +60,7 @@ def responder_con_ia(empresa, sesion, sesion_whatsapp, ahora, opcion_pdf=None):
             'El agente de IA no está disponible en este momento. Puedes elegir otra opción.',
         )
         return
+    # guardar y contar solo las respuestas generadas correctamente
     HistorialChat.objects.create(sesion_usuario=sesion, rol='assistant', contenido=respuesta)
     empresa.respuestas_ia_utilizadas += 1
     empresa.save(update_fields=['respuestas_ia_utilizadas'])
@@ -74,6 +78,7 @@ def responder_con_ia(empresa, sesion, sesion_whatsapp, ahora, opcion_pdf=None):
 
 
 def enviar_respuesta_de_nodo_texto(sesion_whatsapp, telefono, texto, destino_chat=None):
+    # enviar mensajes del sistema sin depender de un nodo
     try:
         enviar_mensaje_whatsapp(sesion_whatsapp, telefono, texto, destino_chat=destino_chat)
     except Exception:
@@ -126,6 +131,7 @@ def procesar_mensaje_whatsapp(identificador, telefono_cliente, texto_usuario, id
         telefono_cliente=telefono_cliente,
         defaults={'activo': True},
     )
+    # bloquear la conversacion para procesar los mensajes en orden
     sesion = SesionUsuario.objects.select_for_update().get(pk=sesion.pk)
     mensaje_cliente = guardar_mensaje_cliente(sesion, texto_usuario, identificador_mensaje)
     if not mensaje_cliente:
@@ -140,6 +146,7 @@ def procesar_mensaje_whatsapp(identificador, telefono_cliente, texto_usuario, id
     if sesion.estado in ['humano', 'cerrada']:
         return
 
+    # usar la bienvenida marcada o el primer paso disponible
     nodo_inicial = NodoBot.objects.filter(empresa=empresa, es_nodo_inicial=True).prefetch_related('opciones_salida').first()
     if not nodo_inicial:
         nodo_inicial = NodoBot.objects.filter(empresa=empresa).prefetch_related('opciones_salida').order_by('pk').first()
@@ -168,11 +175,13 @@ def procesar_mensaje_whatsapp(identificador, telefono_cliente, texto_usuario, id
         return
 
     if (texto_usuario or '').strip().casefold() == 'volver' and nodo_inicial and nodo_actual.pk != nodo_inicial.pk:
+        # volver siempre abre el menu inicial
         asignar_nodo(sesion, nodo_inicial)
         enviar_respuesta_de_nodo(nodo_inicial, None, sesion_whatsapp, telefono_cliente, destino_chat)
         return
 
     if nodo_actual.tipo_nodo in ['MENU', 'TEXT']:
+        # buscar la conexion que coincida con el valor enviado
         opciones = list(nodo_actual.opciones_salida.filter(nodo_siguiente__empresa=empresa).select_related('nodo_siguiente').order_by('pk'))
         entrada_aceptada = normalizar_entrada(texto_usuario)
         opcion_elegida = next((
@@ -187,6 +196,7 @@ def procesar_mensaje_whatsapp(identificador, telefono_cliente, texto_usuario, id
             enviar_respuesta_de_nodo(nodo_actual, None, sesion_whatsapp, telefono_cliente, destino_chat)
             return
 
+        # mover la conversacion al paso conectado
         nodo_siguiente = opcion_elegida.nodo_siguiente
         sesion.nodo_actual = nodo_siguiente
         if nodo_siguiente.tipo_nodo == 'HUMAN_AGENT':
@@ -204,6 +214,7 @@ def procesar_mensaje_whatsapp(identificador, telefono_cliente, texto_usuario, id
         else:
             enviar_respuesta_de_nodo(nodo_siguiente, opcion_elegida, sesion_whatsapp, telefono_cliente, destino_chat)
             if nodo_siguiente.tipo_nodo == 'TEXT' and not nodo_siguiente.opciones_salida.exists():
+                # reiniciar en el siguiente mensaje despues de un texto final
                 sesion.nodo_actual = None
                 sesion.save(update_fields=['nodo_actual', 'ultima_actividad'])
         return
@@ -226,5 +237,6 @@ def procesar_mensaje_whatsapp(identificador, telefono_cliente, texto_usuario, id
 
 
 def normalizar_entrada(entrada):
+    # aceptar valores con espacios o puntuacion adicional
     return (entrada or '').strip().casefold().strip(' .,!;:¿?¡!')
 

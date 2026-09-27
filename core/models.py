@@ -21,6 +21,7 @@ class Empresa(models.Model):
     propietario = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='empresa_whatsapp', null=True, blank=True)
     prompt_sistema_ia = models.TextField(default='Eres un asistente virtual')
     ia_desde_primer_mensaje = models.BooleanField(default=False)
+    # limitar las respuestas gratuitas de ia por empresa
     limite_respuestas_ia = models.PositiveIntegerField(default=100)
     respuestas_ia_utilizadas = models.PositiveIntegerField(default=0)
     activo = models.BooleanField(default=True)
@@ -52,6 +53,7 @@ class CicloFacturacion(models.Model):
 
     class Meta:
         constraints = [
+            # guardar un solo conteo mensual por empresa
             models.UniqueConstraint(fields=['empresa', 'mes', 'anio'], name='ciclo_ia_empresa_mes_unico'),
         ]
 
@@ -98,6 +100,7 @@ class OpcionNodo(models.Model):
             if self.nodo_padre.empresa_id != self.nodo_siguiente.empresa_id:
                 raise ValidationError('Los pasos de una opción deben pertenecer a la misma empresa.')
         if self.nodo_padre_id and self.entrada_esperada:
+            # evitar dos conexiones con el mismo valor de entrada
             repetida = OpcionNodo.objects.filter(
                 nodo_padre_id=self.nodo_padre_id,
                 entrada_esperada__iexact=self.entrada_esperada.strip(),
@@ -106,6 +109,7 @@ class OpcionNodo(models.Model):
                 raise ValidationError({'entrada_esperada': 'Este valor ya está conectado a otro paso.'})
 
     def save(self, *args, **kwargs):
+        # validar tambien los guardados que no pasan por formularios
         self.full_clean()
         return super().save(*args, **kwargs)
 

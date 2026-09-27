@@ -34,6 +34,7 @@ class NodoBotForm(forms.ModelForm):
     def __init__(self, *args, empresa, **kwargs):
         super().__init__(*args, **kwargs)
         self.empresa = empresa
+        # mantener ia como una opcion disponible del formulario
         self.fields['tipo_nodo'].choices = [
             eleccion for eleccion in NodoBot.TIPO_NODO_OPCIONES
             if eleccion[0] != 'AI_AGENT'
@@ -41,6 +42,7 @@ class NodoBotForm(forms.ModelForm):
 
     def save(self, commit=True):
         nodo = super().save(commit=False)
+        # asociar cada paso con la empresa del usuario autenticado
         nodo.empresa = self.empresa
         if commit:
             if nodo.es_nodo_inicial:
