@@ -1,9 +1,9 @@
 import logging
 from django.utils import timezone
-from .models import SesionWhatsApp, SesionUsuario, NodoBot, HistorialChat, CicloFacturacion
+from django.db import IntegrityError, transaction
+from .models import Empresa, SesionWhatsApp, SesionUsuario, NodoBot, HistorialChat, CicloFacturacion
 from .utils import enviar_mensaje_whatsapp
-from langchain_openai import ChatOpenAI
-from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
+from .ia import ErrorProveedorIA, generar_respuesta_ia
 
 logger = logging.getLogger(__name__)
 
@@ -22,27 +22,46 @@ def guardar_mensaje_cliente(sesion, texto, identificador):
     # ignoro el reintento si ya guarde este mensaje
     if identificador and HistorialChat.objects.filter(sesion_usuario=sesion, identificador_mensaje=identificador).exists():
         return None
-    return HistorialChat.objects.create(
-        sesion_usuario=sesion,
-        rol='user',
-        contenido=texto,
-        identificador_mensaje=identificador or '',
-    )
+    try:
+        return HistorialChat.objects.create(
+            sesion_usuario=sesion,
+            rol='user',
+            contenido=texto,
+            identificador_mensaje=identificador or '',
+        )
+    except IntegrityError:
+        return None
 
 
 def responder_con_ia(empresa, sesion, sesion_whatsapp, ahora, opcion_pdf=None):
-    # uso el contexto que dejo el cliente para responder
     historial = HistorialChat.objects.filter(sesion_usuario=sesion).order_by('fecha')
-    mensajes = [SystemMessage(content=empresa.prompt_sistema_ia)]
+    mensajes = [{'role': 'system', 'content': empresa.prompt_sistema_ia}]
     for item in historial:
-        if item.rol == 'user':
-            mensajes.append(HumanMessage(content=item.contenido))
-        else:
-            mensajes.append(AIMessage(content=item.contenido))
+        rol = 'user' if item.rol == 'user' else 'assistant'
+        mensajes.append({'role': rol, 'content': item.contenido})
 
-    # le paso el historial junto con las instrucciones que puso el cliente
-    respuesta = str(ChatOpenAI(temperature=0.7).invoke(mensajes).content)
+    empresa = Empresa.objects.select_for_update().get(pk=empresa.pk)
+    if empresa.respuestas_ia_utilizadas >= empresa.limite_respuestas_ia:
+        enviar_respuesta_de_nodo_texto(
+            sesion_whatsapp,
+            sesion.telefono_cliente,
+            'Se alcanzó el límite de respuestas de IA para esta cuenta.',
+            destino_chat=None,
+        )
+        return
+    try:
+        respuesta = generar_respuesta_ia(mensajes)
+    except ErrorProveedorIA as error:
+        logger.warning('La IA no está disponible para empresa %s: %s', empresa.pk, error)
+        enviar_respuesta_de_nodo_texto(
+            sesion_whatsapp,
+            sesion.telefono_cliente,
+            'El agente de IA no está disponible en este momento. Puedes elegir otra opción.',
+        )
+        return
     HistorialChat.objects.create(sesion_usuario=sesion, rol='assistant', contenido=respuesta)
+    empresa.respuestas_ia_utilizadas += 1
+    empresa.save(update_fields=['respuestas_ia_utilizadas'])
     try:
         enviar_mensaje_whatsapp(sesion_whatsapp, sesion.telefono_cliente, respuesta, opcion_pdf)
     except Exception:
@@ -54,6 +73,13 @@ def responder_con_ia(empresa, sesion, sesion_whatsapp, ahora, opcion_pdf=None):
     )
     ciclo.conteo_mensajes_ia += 1
     ciclo.save(update_fields=['conteo_mensajes_ia'])
+
+
+def enviar_respuesta_de_nodo_texto(sesion_whatsapp, telefono, texto, destino_chat=None):
+    try:
+        enviar_mensaje_whatsapp(sesion_whatsapp, telefono, texto, destino_chat=destino_chat)
+    except Exception:
+        logger.exception('No se pudo entregar una respuesta a WhatsApp')
 
 
 def enviar_respuesta_de_nodo(nodo, opcion, sesion_whatsapp, telefono, destino_chat=None):
@@ -87,6 +113,7 @@ def asignar_nodo(sesion, nodo):
     sesion.save(update_fields=['nodo_actual', 'estado', 'activo', 'ultima_actividad'])
 
 
+@transaction.atomic
 def procesar_mensaje_whatsapp(identificador, telefono_cliente, texto_usuario, identificador_mensaje='', destino_chat=None):
     # busco la empresa usando la sesion exacta que recibio el mensaje
     sesion_whatsapp = SesionWhatsApp.objects.select_related('empresa').get(
@@ -101,8 +128,7 @@ def procesar_mensaje_whatsapp(identificador, telefono_cliente, texto_usuario, id
         telefono_cliente=telefono_cliente,
         defaults={'activo': True},
     )
-    # guardo el tiempo antes de actualizarlo para detectar chats viejos
-    inactiva = not creada and sesion.ultima_actividad < ahora - timezone.timedelta(hours=2)
+    sesion = SesionUsuario.objects.select_for_update().get(pk=sesion.pk)
     mensaje_cliente = guardar_mensaje_cliente(sesion, texto_usuario, identificador_mensaje)
     if not mensaje_cliente:
         return
@@ -133,22 +159,6 @@ def procesar_mensaje_whatsapp(identificador, telefono_cliente, texto_usuario, id
             enviar_respuesta_de_nodo(nodo_inicial, None, sesion_whatsapp, telefono_cliente, destino_chat)
         return
 
-    if inactiva:
-        # despues de un rato vuelvo a empezar el flujo del cliente
-        HistorialChat.objects.filter(sesion_usuario=sesion).exclude(pk=mensaje_cliente.pk).delete()
-        if empresa.ia_desde_primer_mensaje:
-            sesion.nodo_actual = None
-            sesion.save(update_fields=['nodo_actual'])
-            responder_con_ia(empresa, sesion, sesion_whatsapp, ahora)
-            return
-        if not nodo_inicial:
-            sesion.nodo_actual = None
-            sesion.save(update_fields=['nodo_actual'])
-            return
-        asignar_nodo(sesion, nodo_inicial)
-        enviar_respuesta_de_nodo(nodo_inicial, None, sesion_whatsapp, telefono_cliente, destino_chat)
-        return
-
     nodo_actual = sesion.nodo_actual
     if not nodo_actual or nodo_actual.empresa_id != empresa.id:
         if empresa.ia_desde_primer_mensaje:
@@ -157,6 +167,11 @@ def procesar_mensaje_whatsapp(identificador, telefono_cliente, texto_usuario, id
         if nodo_inicial:
             asignar_nodo(sesion, nodo_inicial)
             enviar_respuesta_de_nodo(nodo_inicial, None, sesion_whatsapp, telefono_cliente, destino_chat)
+        return
+
+    if (texto_usuario or '').strip().casefold() == 'volver' and nodo_inicial and nodo_actual.pk != nodo_inicial.pk:
+        asignar_nodo(sesion, nodo_inicial)
+        enviar_respuesta_de_nodo(nodo_inicial, None, sesion_whatsapp, telefono_cliente, destino_chat)
         return
 
     if nodo_actual.tipo_nodo in ['MENU', 'TEXT']:
@@ -223,6 +238,9 @@ def procesar_mensaje_whatsapp(identificador, telefono_cliente, texto_usuario, id
             responder_con_ia(empresa, sesion, sesion_whatsapp, ahora, opcion_elegida.pk if opcion_elegida.archivo_pdf else None)
         else:
             enviar_respuesta_de_nodo(nodo_siguiente, opcion_elegida, sesion_whatsapp, telefono_cliente, destino_chat)
+            if nodo_siguiente.tipo_nodo == 'TEXT' and not nodo_siguiente.opciones_salida.exists():
+                sesion.nodo_actual = None
+                sesion.save(update_fields=['nodo_actual', 'ultima_actividad'])
         return
 
     if nodo_actual.tipo_nodo == 'AI_AGENT':

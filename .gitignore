@@ -1,7 +1,9 @@
 __pycache__
 venv
+.venv
 ./venv
 .env
+.env.example
 *.env
 *.pyc
 *.sqlite3
@@ -11,3 +13,4 @@ node_modules/
 sesiones_whatsapp/
 media/
 /core/tests.py
+systemd_services.txt

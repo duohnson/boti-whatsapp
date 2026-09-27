@@ -21,6 +21,8 @@ class Empresa(models.Model):
     propietario = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='empresa_whatsapp', null=True, blank=True)
     prompt_sistema_ia = models.TextField(default='Eres un asistente virtual')
     ia_desde_primer_mensaje = models.BooleanField(default=False)
+    limite_respuestas_ia = models.PositiveIntegerField(default=100)
+    respuestas_ia_utilizadas = models.PositiveIntegerField(default=0)
     activo = models.BooleanField(default=True)
 
 # sesion de whatsapp al unir el codigo qr
@@ -47,6 +49,11 @@ class CicloFacturacion(models.Model):
     mes = models.IntegerField()
     anio = models.IntegerField()
     conteo_mensajes_ia = models.IntegerField(default=0)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['empresa', 'mes', 'anio'], name='ciclo_ia_empresa_mes_unico'),
+        ]
 
 class NodoBot(models.Model):
     # con estos pasos el cliente arma su propio flujo
@@ -90,6 +97,10 @@ class OpcionNodo(models.Model):
             # no dejo que un flujo salte a pasos de otra empresa
             if self.nodo_padre.empresa_id != self.nodo_siguiente.empresa_id:
                 raise ValidationError('Los pasos de una opción deben pertenecer a la misma empresa.')
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        return super().save(*args, **kwargs)
 
 class SesionUsuario(models.Model):
     # aqui queda si contesta el bot, una persona o nadie

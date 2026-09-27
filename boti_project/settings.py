@@ -12,22 +12,24 @@ https://docs.djangoproject.com/en/6.1/ref/settings/
 
 from pathlib import Path
 import os
+from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+load_dotenv(BASE_DIR / '.env')
 
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-b+y*!^_v9=^3ekh!&ja5s_0wf(&ekh2hga^3n#l%99n0k-1$#v'
+SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', '')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.environ.get('DJANGO_DEBUG', '0') == '1'
 
-ALLOWED_HOSTS = ['boti.duohnson.com', 'localhost', '127.0.0.1']
-CSRF_TRUSTED_ORIGINS = ['https://boti.duohnson.com']
+ALLOWED_HOSTS = [host.strip() for host in os.environ.get('DJANGO_ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',') if host.strip()]
+CSRF_TRUSTED_ORIGINS = [origen.strip() for origen in os.environ.get('DJANGO_CSRF_TRUSTED_ORIGINS', '').split(',') if origen.strip()]
 
 
 # Application definition
@@ -75,12 +77,24 @@ WSGI_APPLICATION = 'boti_project.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/6.1/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+if os.environ.get('POSTGRES_DB'):
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': os.environ['POSTGRES_DB'],
+            'USER': os.environ.get('POSTGRES_USER', ''),
+            'PASSWORD': os.environ.get('POSTGRES_PASSWORD', ''),
+            'HOST': os.environ.get('POSTGRES_HOST', '127.0.0.1'),
+            'PORT': os.environ.get('POSTGRES_PORT', '5432'),
+        }
     }
-}
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
 
 
 # Password validation
@@ -125,12 +139,6 @@ MEDIA_ROOT = BASE_DIR / 'media'
 # Email
 # https://docs.djangoproject.com/en/6.1/topics/email/#topic-email-configuration
 
-MAILERS = {
-    'default': {
-        'BACKEND': 'django.core.mail.backends.console.EmailBackend',
-    },
-}
-
 LOGIN_URL = '/cuentas/ingresar/'
 LOGIN_REDIRECT_URL = '/api/dashboard/'
 LOGOUT_REDIRECT_URL = '/cuentas/ingresar/'
@@ -138,3 +146,10 @@ LOGOUT_REDIRECT_URL = '/cuentas/ingresar/'
 WHATSAPP_NODE_URL = os.environ.get('WHATSAPP_NODE_URL', 'http://127.0.0.1:11223')
 # django y node comparten este secreto para las llamadas internas
 WHATSAPP_INTERNAL_SECRET = os.environ.get('WHATSAPP_INTERNAL_SECRET', '')
+
+SECURE_SSL_REDIRECT = not DEBUG and os.environ.get('DJANGO_FORZAR_HTTPS', '0') == '1'
+SESSION_COOKIE_SECURE = not DEBUG
+CSRF_COOKIE_SECURE = not DEBUG
+SECURE_HSTS_SECONDS = 31536000 if not DEBUG else 0
+SECURE_HSTS_INCLUDE_SUBDOMAINS = not DEBUG
+SECURE_HSTS_PRELOAD = not DEBUG
