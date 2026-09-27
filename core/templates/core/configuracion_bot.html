@@ -21,7 +21,8 @@
         button.eliminar { background: #a23c2f; }
         details { border-top: 1px solid var(--borde); padding-top: 12px; margin-top: 14px; }
         .fila { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-        .opcion { background: #f7f9f8; padding: 14px; border-radius: 10px; margin: 12px 0; }
+        .opcion, .conexion { background: #f7f9f8; padding: 14px; border-radius: 10px; margin: 12px 0; }
+        .guia { border-left: 4px solid var(--verde); background: #f0f8f3; padding: 14px; border-radius: 8px; }
         .acciones { display: flex; gap: 9px; flex-wrap: wrap; }
         @media (max-width: 650px) { .fila { grid-template-columns: 1fr; } header, section, article { padding: 17px; } }
     </style>
@@ -31,7 +32,7 @@
     <header>
         <a class="boton secundario" href="{% url 'dashboard' %}">Volver al panel</a>
         <h1>Configura tu asistente</h1>
-        <p>Define el contexto de la IA y los pasos automáticos. El cliente elige respondiendo con el número o el texto de una opción.</p>
+        <p>Define el contexto de la IA y los pasos automáticos. Cada opción conecta un paso con otro.</p>
         {% for mensaje in messages %}<p>{{ mensaje }}</p>{% endfor %}
     </header>
     <section>
@@ -45,21 +46,23 @@
     </section>
     <section>
         <h2>Tu flujo</h2>
+        <div class="guia"><strong>Cómo crear un menú:</strong> crea los pasos destino primero. Luego, en el paso de tipo <strong>Menú</strong>, agrega una conexión por cada alternativa. El bot genera las opciones automáticamente; no escribas “Opción 1”, “Opción 2” o “Opción 3” dentro del mensaje.</div>
         {% for paso in pasos %}
         <article>
             <h3>{{ paso.objeto.nombre }}{% if paso.objeto.es_nodo_inicial %} · Bienvenida{% endif %}</h3>
             <form method="post" action="{% url 'guardar_nodo' paso.objeto.pk %}">{% csrf_token %}{{ paso.formulario.as_p }}<div class="acciones"><button type="submit">Guardar paso</button></div></form>
             {% for opcion in paso.opciones %}
             <div class="opcion">
-                <strong>Opción: {{ opcion.objeto.etiqueta|default:opcion.objeto.entrada_esperada }}</strong>
+                <strong>Si responde «{{ opcion.objeto.entrada_esperada }}» → {{ opcion.objeto.nodo_siguiente.nombre }}</strong>
                 <form method="post" enctype="multipart/form-data" action="{% url 'guardar_opcion' paso.objeto.pk opcion.objeto.pk %}">{% csrf_token %}{{ opcion.formulario.as_p }}<div class="acciones"><button type="submit">Guardar opción</button></div></form>
                 <form method="post" action="{% url 'eliminar_opcion' paso.objeto.pk opcion.objeto.pk %}">{% csrf_token %}<button class="eliminar" type="submit">Eliminar opción</button></form>
             </div>
             {% endfor %}
-            <details>
-                <summary>Agregar opción a «{{ paso.objeto.nombre }}»</summary>
+            <div class="conexion">
+                <h4>Agregar conexión desde «{{ paso.objeto.nombre }}»</h4>
+                <p>Ejemplo: valor <strong>5</strong>, texto <strong>Ver información</strong> y destino <strong>Información</strong>.</p>
                 <form method="post" enctype="multipart/form-data" action="{% url 'crear_opcion' paso.objeto.pk %}">{% csrf_token %}{{ paso.formulario_opcion.as_p }}<button type="submit">Agregar opción</button></form>
-            </details>
+            </div>
             <form method="post" action="{% url 'eliminar_nodo' paso.objeto.pk %}">{% csrf_token %}<button class="eliminar" type="submit">Eliminar paso y sus opciones</button></form>
         </article>
         {% empty %}

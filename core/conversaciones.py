@@ -9,12 +9,10 @@ logger = logging.getLogger(__name__)
 
 
 def mensaje_con_opciones(nodo):
-    # mando las opciones numeradas para que respondan desde whatsapp
     opciones = list(nodo.opciones_salida.filter(nodo_siguiente__empresa_id=nodo.empresa_id).order_by('pk'))
     if not opciones:
-        # si no hay menu, envio solo el texto del paso
         return nodo.contenido_mensaje
-    lineas = [f"{indice}. {opcion.etiqueta or opcion.entrada_esperada}" for indice, opcion in enumerate(opciones, start=1)]
+    lineas = [f"{opcion.entrada_esperada}. {opcion.etiqueta or opcion.entrada_esperada}" for opcion in opciones]
     return f"{nodo.contenido_mensaje}\n\n" + '\n'.join(lineas)
 
 
@@ -175,48 +173,15 @@ def procesar_mensaje_whatsapp(identificador, telefono_cliente, texto_usuario, id
         return
 
     if nodo_actual.tipo_nodo in ['MENU', 'TEXT']:
-        # acepta el numero, la respuesta o el nombre visible de la opcion, y normaliza entradas raras como '1.', 'hola', emojis o puntos
         opciones = list(nodo_actual.opciones_salida.filter(nodo_siguiente__empresa=empresa).select_related('nodo_siguiente').order_by('pk'))
-        entrada = (texto_usuario or '').strip()
-        entrada_normalizada = ''.join(ch for ch in entrada.casefold() if not ch.isdigit() or ch.isdigit())
-        entrada_normalizada = entrada_normalizada.strip(' .,!;:¿?¡!').strip()
-        entrada_aceptada = entrada_normalizada
-        valores_aceptados = set()
-        for indice, opcion in enumerate(opciones, start=1):
-            valores_aceptados.add(str(indice))
-            valores_aceptados.add(str(indice) + '.')
-            valores_aceptados.add(str(indice) + ')')
-            valores_aceptados.add(opcion.entrada_esperada.strip().casefold())
-            valores_aceptados.add((opcion.entrada_esperada or '').strip().casefold().strip(' .,!;:¿?¡!'))
-            etiqueta = (opcion.etiqueta or '').strip().casefold().strip(' .,!;:¿?¡!')
-            valores_aceptados.add(etiqueta)
+        entrada_aceptada = normalizar_entrada(texto_usuario)
         opcion_elegida = next((
-            opcion for indice, opcion in enumerate(opciones, start=1)
+            opcion for opcion in opciones
             if entrada_aceptada in {
-                str(indice),
-                f'{indice}.',
-                f'{indice})',
-                opcion.entrada_esperada.strip().casefold(),
-                (opcion.entrada_esperada or '').strip().casefold().strip(' .,!;:¿?¡!'),
-                (opcion.etiqueta or '').strip().casefold().strip(' .,!;:¿?¡!'),
+                normalizar_entrada(opcion.entrada_esperada),
+                normalizar_entrada(opcion.etiqueta),
             }
-            or entrada_aceptada in {str(indice), str(indice) + '.', str(indice) + ')'}
         ), None)
-
-        if not opcion_elegida:
-            entrada_reducida = ''.join(ch for ch in entrada_normalizada if ch not in ' .,!;:¿?¡!')
-            if entrada_reducida and any(car.isalpha() for car in entrada_reducida):
-                entrada_reducida = ''.join(ch for ch in entrada_reducida if ch.isalpha() or ch.isspace())
-            if not entrada_reducida or not any(car.isalnum() for car in entrada_reducida):
-                enviar_respuesta_de_nodo(nodo_actual, None, sesion_whatsapp, telefono_cliente, destino_chat)
-                return
-            opcion_elegida = next((
-                opcion for opcion in opciones
-                if entrada_reducida in {
-                    (opcion.entrada_esperada or '').strip().casefold().strip(' .,!;:¿?¡!'),
-                    (opcion.etiqueta or '').strip().casefold().strip(' .,!;:¿?¡!'),
-                }
-            ), None)
 
         if not opcion_elegida:
             enviar_respuesta_de_nodo(nodo_actual, None, sesion_whatsapp, telefono_cliente, destino_chat)
@@ -258,4 +223,8 @@ def procesar_mensaje_whatsapp(identificador, telefono_cliente, texto_usuario, id
             enviar_respuesta_de_nodo(nodo_actual, None, sesion_whatsapp, telefono_cliente, destino_chat)
     else:
         enviar_respuesta_de_nodo(nodo_actual, None, sesion_whatsapp, telefono_cliente, destino_chat)
+
+
+def normalizar_entrada(entrada):
+    return (entrada or '').strip().casefold().strip(' .,!;:¿?¡!')
 

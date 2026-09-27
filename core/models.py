@@ -97,6 +97,13 @@ class OpcionNodo(models.Model):
             # no dejo que un flujo salte a pasos de otra empresa
             if self.nodo_padre.empresa_id != self.nodo_siguiente.empresa_id:
                 raise ValidationError('Los pasos de una opción deben pertenecer a la misma empresa.')
+        if self.nodo_padre_id and self.entrada_esperada:
+            repetida = OpcionNodo.objects.filter(
+                nodo_padre_id=self.nodo_padre_id,
+                entrada_esperada__iexact=self.entrada_esperada.strip(),
+            ).exclude(pk=self.pk)
+            if repetida.exists():
+                raise ValidationError({'entrada_esperada': 'Este valor ya está conectado a otro paso.'})
 
     def save(self, *args, **kwargs):
         self.full_clean()

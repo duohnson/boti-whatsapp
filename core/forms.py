@@ -57,9 +57,9 @@ class OpcionNodoForm(forms.ModelForm):
         model = OpcionNodo
         fields = ['entrada_esperada', 'etiqueta', 'nodo_siguiente', 'archivo_pdf']
         labels = {
-            'entrada_esperada': 'Respuesta aceptada (por ejemplo, 1)',
-            'etiqueta': 'Texto de la opción que verá el cliente',
-            'nodo_siguiente': 'Paso al elegir esta opción',
+            'entrada_esperada': 'Valor que debe responder el cliente (por ejemplo, 5)',
+            'etiqueta': 'Texto que se mostrará junto al valor',
+            'nodo_siguiente': 'Paso que abrirá esta opción',
             'archivo_pdf': 'PDF opcional que se enviará al elegirla',
         }
         widgets = {
@@ -72,3 +72,5 @@ class OpcionNodoForm(forms.ModelForm):
         self.fields['nodo_siguiente'].queryset = NodoBot.objects.filter(empresa=empresa).order_by('nombre')
         self.fields['archivo_pdf'].required = False
         self.fields['etiqueta'].required = False
+        self.fields['entrada_esperada'].help_text = 'Cada valor debe ser único dentro de este paso.'
+        self.fields['nodo_siguiente'].help_text = 'Puedes enlazar este paso con cualquier otro paso de tu flujo.'

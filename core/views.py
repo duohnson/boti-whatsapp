@@ -231,9 +231,9 @@ def guardar_opcion(request, nodo_id, opcion_id=None):
     nodo = get_object_or_404(NodoBot, pk=nodo_id, empresa=empresa)
     instancia = get_object_or_404(OpcionNodo, pk=opcion_id, nodo_padre=nodo) if opcion_id else None
     formulario = OpcionNodoForm(request.POST, request.FILES, instance=instancia, empresa=empresa)
+    formulario.instance.nodo_padre = nodo
     if formulario.is_valid():
         opcion = formulario.save(commit=False)
-        opcion.nodo_padre = nodo
         opcion.save()
         messages.success(request, 'Se guardó la opción.')
     else:
