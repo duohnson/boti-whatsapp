@@ -1,75 +1,289 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" data-theme="light">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Configurar bot</title>
-    <style>
-        :root { color-scheme: light; --verde: #147d55; --tinta: #19312a; --suave: #60746a; --borde: #e1e9e4; }
-        * { box-sizing: border-box; }
-        body { margin: 0; background: #f3f6f4; color: var(--tinta); font-family: system-ui, sans-serif; }
-        main { max-width: 1050px; margin: 36px auto; padding: 0 18px 48px; }
-        header, section, article { background: white; border: 1px solid var(--borde); border-radius: 14px; padding: 22px; margin-bottom: 18px; }
-        h1, h2, h3 { margin-top: 0; }
-        p, small { color: var(--suave); }
-        form { margin: 14px 0; }
-        label { display: block; margin: 12px 0 5px; font-weight: 600; }
-        input:not([type=checkbox]):not([type=file]), select, textarea { width: 100%; padding: 10px; border: 1px solid #ccd8d0; border-radius: 8px; font: inherit; }
-        input[type=checkbox] { margin-right: 8px; }
-        button, a.boton { display: inline-block; padding: 10px 14px; background: var(--verde); color: white; border: 0; border-radius: 8px; font: inherit; text-decoration: none; cursor: pointer; }
-        button.secundario, a.secundario { color: var(--tinta); background: #eaf0ec; }
-        button.eliminar { background: #a23c2f; }
-        details { border-top: 1px solid var(--borde); padding-top: 12px; margin-top: 14px; }
-        .fila { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-        .opcion, .conexion { background: #f7f9f8; padding: 14px; border-radius: 10px; margin: 12px 0; }
-        .guia { border-left: 4px solid var(--verde); background: #f0f8f3; padding: 14px; border-radius: 8px; }
-        .acciones { display: flex; gap: 9px; flex-wrap: wrap; }
-        @media (max-width: 650px) { .fila { grid-template-columns: 1fr; } header, section, article { padding: 17px; } }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Boti · Conversaciones</title>
+<style>
+/* --- (idéntico bloque de variables y base que dashboard.html) --- */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --wa:#25D366;--wa-hover:#1EBE5A;--wa-dark:#128C7E;
+  --aqua:#00BCD4;--aqua-soft:rgba(0,188,212,.12);
+  --bg:#F5FAFB;--surface:#FFFFFF;--surface-2:#EEF6F8;
+  --text:#0B1A1F;--muted:#5C727A;--border:#E0EDF0;
+  --danger:#EF4444;--warn:#F59E0B;
+  --shadow-sm:0 1px 2px rgba(11,26,31,.06);
+  --shadow:0 8px 30px rgba(0,150,170,.10);
+  --shadow-lg:0 24px 60px rgba(0,150,170,.18);
+  --r-sm:8px;--r:14px;--r-lg:22px;
+  --t:.25s cubic-bezier(.4,0,.2,1);
+}
+[data-theme="dark"]{
+  --bg:#0A1417;--surface:#101E22;--surface-2:#16282D;
+  --text:#E6F1F4;--muted:#8CA3AB;--border:#1E3339;
+  --aqua-soft:rgba(0,188,212,.16);
+  --shadow-sm:0 1px 2px rgba(0,0,0,.5);
+  --shadow:0 8px 30px rgba(0,0,0,.45);
+  --shadow-lg:0 24px 60px rgba(0,0,0,.65);
+}
+html,body{height:100%}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Oxygen,Ubuntu,sans-serif;background:var(--bg);color:var(--text);font-size:clamp(14px,1vw,16px);line-height:1.5;transition:background var(--t),color var(--t);-webkit-font-smoothing:antialiased}
+button{font:inherit;cursor:pointer;border:none;background:none;color:inherit}
+a{color:inherit;text-decoration:none}
+.app{display:grid;grid-template-columns:260px 1fr;min-height:100vh}
+.sidebar{background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;gap:1.25rem;padding:1.25rem 1rem;height:100vh;position:sticky;top:0;transition:transform var(--t),background var(--t)}
+.brand{display:flex;align-items:center;gap:.65rem;padding:.25rem .5rem .5rem}
+.brand-logo{width:2.25rem;height:2.25rem;border-radius:var(--r-sm);background:linear-gradient(135deg,var(--wa),var(--aqua));display:grid;place-items:center;color:#fff;flex:none;box-shadow:0 4px 14px rgba(37,211,102,.35)}
+.brand-name{font-weight:700;font-size:1.1rem}
+.close-side{display:none;margin-left:auto}
+.nav{display:flex;flex-direction:column;gap:.25rem;flex:1}
+.nav-item{display:flex;align-items:center;gap:.75rem;padding:.7rem .75rem;border-radius:var(--r-sm);color:var(--muted);font-weight:500;font-size:.94rem;transition:background var(--t),color var(--t);position:relative}
+.nav-item:hover{background:var(--surface-2);color:var(--text)}
+.nav-item.active{background:var(--aqua-soft);color:var(--aqua);font-weight:600}
+.nav-item.active::before{content:"";position:absolute;left:-1rem;top:50%;transform:translateY(-50%);width:3px;height:60%;background:var(--aqua);border-radius:0 4px 4px 0}
+.nav-item svg{width:1.15rem;height:1.15rem;flex:none}
+.badge{margin-left:auto;background:var(--wa);color:#fff;font-size:.7rem;font-weight:700;padding:.1rem .45rem;border-radius:999px}
+.side-foot{padding-top:1rem;border-top:1px solid var(--border)}
+.user{display:flex;align-items:center;gap:.65rem;padding:.35rem .25rem}
+.avatar{width:2.25rem;height:2.25rem;border-radius:50%;background:linear-gradient(135deg,var(--aqua),var(--wa));display:grid;place-items:center;color:#fff;font-weight:700;font-size:.8rem;flex:none}
+.user-info{display:flex;flex-direction:column;min-width:0}
+.user-info strong{font-size:.85rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.user-info span{font-size:.72rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+.main-wrap{display:flex;flex-direction:column;min-width:0}
+.navbar{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:1rem;padding:1rem clamp(1rem,3vw,2rem);background:color-mix(in srgb,var(--bg) 85%,transparent);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-bottom:1px solid var(--border)}
+.page-title{font-size:clamp(1rem,1.6vw,1.15rem);font-weight:600}
+.menu-btn{display:none}
+.nav-right{margin-left:auto;display:flex;align-items:center;gap:.65rem}
+.status-pill{display:inline-flex;align-items:center;gap:.45rem;padding:.35rem .8rem;border-radius:999px;font-size:.78rem;font-weight:600;background:rgba(37,211,102,.12);color:var(--wa-dark);border:1px solid rgba(37,211,102,.35)}
+.status-pill i{width:.5rem;height:.5rem;border-radius:50%;background:var(--wa);display:block;box-shadow:0 0 0 3px rgba(37,211,102,.25)}
+.icon-btn{width:2.4rem;height:2.4rem;border-radius:var(--r-sm);display:grid;place-items:center;color:var(--muted);transition:background var(--t),color var(--t);flex:none}
+.icon-btn:hover{background:var(--surface-2);color:var(--text)}
+.icon-btn svg{width:1.15rem;height:1.15rem}
+
+/* ============ CONVERSACIONES ============ */
+.inbox{
+  flex:1;display:grid;grid-template-columns:minmax(260px,340px) 1fr;
+  gap:0;min-height:0;height:calc(100vh - 68px);
+}
+.chat-list{
+  background:var(--surface);border-right:1px solid var(--border);
+  display:flex;flex-direction:column;overflow:hidden;
+}
+.chat-list-head{padding:1rem;border-bottom:1px solid var(--border);display:flex;flex-direction:column;gap:.75rem}
+.chat-list-head h2{font-size:1rem;font-weight:600}
+.search{position:relative}
+.search svg{position:absolute;left:.7rem;top:50%;transform:translateY(-50%);width:1rem;height:1rem;color:var(--muted)}
+.search input{
+  width:100%;padding:.6rem .8rem .6rem 2.2rem;border-radius:var(--r-sm);
+  border:1px solid var(--border);background:var(--surface-2);color:var(--text);
+  font:inherit;font-size:.88rem;outline:none;transition:border-color var(--t),box-shadow var(--t);
+}
+.search input:focus{border-color:var(--aqua);box-shadow:0 0 0 3px var(--aqua-soft)}
+.chat-items{overflow-y:auto;flex:1}
+.chat-item{
+  display:flex;gap:.75rem;padding:.85rem 1rem;cursor:pointer;
+  border-bottom:1px solid var(--border);transition:background var(--t);
+}
+.chat-item:hover{background:var(--surface-2)}
+.chat-item.active{background:var(--aqua-soft);border-left:3px solid var(--aqua)}
+.chat-item .avatar{width:2.5rem;height:2.5rem;font-size:.85rem}
+.chat-meta{flex:1;min-width:0}
+.chat-meta .row{display:flex;align-items:center;justify-content:space-between;gap:.5rem}
+.chat-meta strong{font-size:.88rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chat-meta time{font-size:.7rem;color:var(--muted);flex:none}
+.chat-meta p{font-size:.78rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:.15rem}
+.tag{display:inline-block;font-size:.65rem;font-weight:700;padding:.15rem .45rem;border-radius:999px;background:rgba(245,158,11,.15);color:var(--warn);margin-top:.25rem}
+
+.chat-panel{display:flex;flex-direction:column;background:var(--surface-2);min-width:0}
+.chat-panel-head{padding:1rem 1.25rem;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:.75rem}
+.chat-panel-head .avatar{width:2.25rem;height:2.25rem}
+.chat-panel-head h3{font-size:.95rem;font-weight:600}
+.chat-panel-head span{display:block;font-size:.75rem;color:var(--wa-dark);font-weight:600}
+.chat-panel-head .actions{margin-left:auto;display:flex;gap:.25rem}
+
+.chat-body{flex:1;overflow-y:auto;padding:1.5rem;display:flex;flex-direction:column;gap:.75rem}
+.bubble{max-width:min(70%,520px);padding:.7rem 1rem;border-radius:14px;font-size:.9rem;line-height:1.45;box-shadow:var(--shadow-sm);position:relative}
+.bubble.in{align-self:flex-start;background:var(--surface);border-bottom-left-radius:4px}
+.bubble.out{align-self:flex-end;background:var(--wa);color:#fff;border-bottom-right-radius:4px}
+.bubble small{display:block;font-size:.65rem;opacity:.7;margin-top:.3rem;text-align:right}
+.bubble.out small{color:rgba(255,255,255,.85)}
+
+.chat-input{
+  padding:1rem 1.25rem;background:var(--surface);border-top:1px solid var(--border);
+  display:flex;gap:.65rem;align-items:center;
+}
+.chat-input input{
+  flex:1;padding:.8rem 1rem;border-radius:999px;border:1px solid var(--border);
+  background:var(--surface-2);color:var(--text);font:inherit;font-size:.9rem;outline:none;
+  transition:border-color var(--t),box-shadow var(--t);
+}
+.chat-input input:focus{border-color:var(--aqua);box-shadow:0 0 0 3px var(--aqua-soft)}
+.send-btn{
+  width:2.75rem;height:2.75rem;border-radius:50%;background:var(--wa);color:#fff;
+  display:grid;place-items:center;flex:none;transition:transform var(--t),background var(--t);
+  box-shadow:0 6px 18px rgba(37,211,102,.35);
+}
+.send-btn:hover{background:var(--wa-hover);transform:scale(1.05)}
+.send-btn svg{width:1.15rem;height:1.15rem}
+
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);opacity:0;pointer-events:none;transition:opacity var(--t);z-index:40}
+.overlay.show{opacity:1;pointer-events:auto}
+
+@media (max-width:960px){
+  .app{grid-template-columns:1fr}
+  .sidebar{position:fixed;left:0;top:0;z-index:50;width:min(280px,82vw);transform:translateX(-105%);box-shadow:var(--shadow-lg)}
+  .sidebar.open{transform:translateX(0)}
+  .close-side{display:grid}
+  .menu-btn{display:grid}
+  .inbox{grid-template-columns:1fr;height:calc(100vh - 68px)}
+  .chat-panel{display:none}
+  .inbox.detail .chat-list{display:none}
+  .inbox.detail .chat-panel{display:flex}
+}
+</style>
 </head>
 <body>
-<main>
-    <header>
-        <a class="boton secundario" href="{% url 'dashboard' %}">Volver al panel</a>
-        <h1>Configura tu asistente</h1>
-        <p>Define el contexto de la IA y los pasos automáticos. Cada opción conecta un paso con otro.</p>
-        {% for mensaje in messages %}<p>{{ mensaje }}</p>{% endfor %}
+<div class="app">
+
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <span class="brand-logo"><svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20"><path d="M12 2C6.5 2 2 6.5 2 12c0 1.8.5 3.5 1.3 5L2 22l5.2-1.3c1.4.8 3.1 1.3 4.8 1.3 5.5 0 10-4.5 10-10S17.5 2 12 2z"/></svg></span>
+      <span class="brand-name">Boti</span>
+      <button class="icon-btn close-side" id="closeSide"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+    </div>
+    <nav class="nav">
+      <a class="nav-item" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3zM20 14v3M14 20h3M20 20h.01"/></svg>Conexión</a>
+      <a class="nav-item active" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>Conversaciones <span class="badge">3</span></a>
+      <a class="nav-item" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>Configuración</a>
+      <a class="nav-item" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>Métricas</a>
+      <a class="nav-item" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>Ajustes</a>
+    </nav>
+    <div class="side-foot">
+      <div class="user"><div class="avatar">JD</div><div class="user-info"><strong>Juan Díaz</strong><span>admin@boti.io</span></div></div>
+    </div>
+  </aside>
+  <div class="overlay" id="overlay"></div>
+
+  <div class="main-wrap">
+    <header class="navbar">
+      <button class="icon-btn menu-btn" id="menuToggle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg></button>
+      <h1 class="page-title">Conversaciones</h1>
+      <div class="nav-right">
+        <span class="status-pill"><i></i>Conectado</span>
+        <button class="icon-btn" id="themeToggle" aria-label="Cambiar tema">
+          <svg class="ico-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+          <svg class="ico-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+        </button>
+      </div>
     </header>
-    <section>
-        <h2>Comportamiento e instrucciones</h2>
-        <form method="post">{% csrf_token %}{{ formulario.as_p }}<button type="submit">Guardar configuración</button></form>
-    </section>
-    <section>
-        <h2>Agregar un paso</h2>
-        <p>Un paso puede mostrar texto, responder con IA, esperar a un agente o finalizar el chat. Marca una bienvenida para escoger el inicio del flujo.</p>
-        <form method="post" action="{% url 'crear_nodo' %}">{% csrf_token %}{{ formulario_nodo.as_p }}<button type="submit">Agregar paso</button></form>
-    </section>
-    <section>
-        <h2>Tu flujo</h2>
-        <div class="guia"><strong>Cómo crear un menú:</strong> crea los pasos destino primero. Luego, en el paso de tipo <strong>Menú</strong>, agrega una conexión por cada alternativa. El bot genera las opciones automáticamente; no escribas “Opción 1”, “Opción 2” o “Opción 3” dentro del mensaje.</div>
-        {% for paso in pasos %}
-        <article>
-            <h3>{{ paso.objeto.nombre }}{% if paso.objeto.es_nodo_inicial %} · Bienvenida{% endif %}</h3>
-            <form method="post" action="{% url 'guardar_nodo' paso.objeto.pk %}">{% csrf_token %}{{ paso.formulario.as_p }}<div class="acciones"><button type="submit">Guardar paso</button></div></form>
-            {% for opcion in paso.opciones %}
-            <div class="opcion">
-                <strong>Si responde «{{ opcion.objeto.entrada_esperada }}» → {{ opcion.objeto.nodo_siguiente.nombre }}</strong>
-                <form method="post" enctype="multipart/form-data" action="{% url 'guardar_opcion' paso.objeto.pk opcion.objeto.pk %}">{% csrf_token %}{{ opcion.formulario.as_p }}<div class="acciones"><button type="submit">Guardar opción</button></div></form>
-                <form method="post" action="{% url 'eliminar_opcion' paso.objeto.pk opcion.objeto.pk %}">{% csrf_token %}<button class="eliminar" type="submit">Eliminar opción</button></form>
+
+    <main class="inbox" id="inbox">
+      <section class="chat-list">
+        <div class="chat-list-head">
+          <h2>Bandeja de entrada</h2>
+          <div class="search">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+            <input type="text" placeholder="Buscar conversación…">
+          </div>
+        </div>
+        <div class="chat-items">
+          <article class="chat-item active" data-open>
+            <div class="avatar">MG</div>
+            <div class="chat-meta">
+              <div class="row"><strong>María González</strong><time>12:41</time></div>
+              <p>Hola, necesito hablar con una persona real…</p>
+              <span class="tag">Requiere humano</span>
             </div>
-            {% endfor %}
-            <div class="conexion">
-                <h4>Agregar conexión desde «{{ paso.objeto.nombre }}»</h4>
-                <p>Ejemplo: valor <strong>5</strong>, texto <strong>Ver información</strong> y destino <strong>Información</strong>.</p>
-                <form method="post" enctype="multipart/form-data" action="{% url 'crear_opcion' paso.objeto.pk %}">{% csrf_token %}{{ paso.formulario_opcion.as_p }}<button type="submit">Agregar opción</button></form>
+          </article>
+          <article class="chat-item" data-open>
+            <div class="avatar">JP</div>
+            <div class="chat-meta">
+              <div class="row"><strong>Jorge Pérez</strong><time>11:08</time></div>
+              <p>¿Cuál es el horario de atención?</p>
             </div>
-            <form method="post" action="{% url 'eliminar_nodo' paso.objeto.pk %}">{% csrf_token %}<button class="eliminar" type="submit">Eliminar paso y sus opciones</button></form>
-        </article>
-        {% empty %}
-        <p>Aún no hay pasos. Crea uno arriba. Si activas IA desde el primer mensaje no necesitas bienvenida.</p>
-        {% endfor %}
-    </section>
-    <footer><a class="boton secundario" href="{% url 'atencion_humana' %}">Abrir conversaciones para atención humana</a></footer>
-</main>
+          </article>
+          <article class="chat-item" data-open>
+            <div class="avatar">AR</div>
+            <div class="chat-meta">
+              <div class="row"><strong>Ana Ruiz</strong><time>Ayer</time></div>
+              <p>Gracias por la información 🙌</p>
+            </div>
+          </article>
+          <article class="chat-item" data-open>
+            <div class="avatar">LC</div>
+            <div class="chat-meta">
+              <div class="row"><strong>Luis Castro</strong><time>Lun</time></div>
+              <p>Quiero cancelar mi pedido #4821</p>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="chat-panel">
+        <header class="chat-panel-head">
+          <button class="icon-btn back-btn" id="backBtn" style="display:none">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+          </button>
+          <div class="avatar">MG</div>
+          <div><h3>María González</h3><span>En atención humana</span></div>
+          <div class="actions">
+            <button class="icon-btn" aria-label="Devolver al bot">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12a9 9 0 1 1-3-6.7L21 3v6h-6"/></svg>
+            </button>
+            <button class="icon-btn" aria-label="Cerrar conversación">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+            </button>
+          </div>
+        </header>
+        <div class="chat-body">
+          <div class="bubble in">Hola, necesito hablar con una persona real, es urgente.<small>12:40</small></div>
+          <div class="bubble out">¡Hola María! Soy Juan, ya estoy contigo. Cuéntame, ¿en qué puedo ayudarte?<small>12:41</small></div>
+          <div class="bubble in">Tengo un problema con mi pedido y no encuentro solución.<small>12:41</small></div>
+        </div>
+        <form class="chat-input" onsubmit="return false">
+          <input type="text" placeholder="Escribe un mensaje…">
+          <button class="send-btn" type="submit" aria-label="Enviar">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4z"/></svg>
+          </button>
+        </form>
+      </section>
+    </main>
+  </div>
+</div>
+
+<script>
+(function(){
+  const root=document.documentElement;
+  const saved=localStorage.getItem('boti-theme');
+  if(saved) root.setAttribute('data-theme',saved);
+  const tBtn=document.getElementById('themeToggle');
+  const sun=document.querySelector('.ico-sun'), moon=document.querySelector('.ico-moon');
+  function sync(){const d=root.getAttribute('data-theme')==='dark';sun.style.display=d?'none':'block';moon.style.display=d?'block':'none';}
+  sync();
+  tBtn.addEventListener('click',()=>{const n=root.getAttribute('data-theme')==='dark'?'light':'dark';root.setAttribute('data-theme',n);localStorage.setItem('boti-theme',n);sync();});
+
+  const sb=document.getElementById('sidebar'),ov=document.getElementById('overlay');
+  const open=()=>{sb.classList.add('open');ov.classList.add('show');};
+  const close=()=>{sb.classList.remove('open');ov.classList.remove('show');};
+  document.getElementById('menuToggle').addEventListener('click',open);
+  document.getElementById('closeSide').addEventListener('click',close);
+  ov.addEventListener('click',close);
+
+  // Maestro-detalle en móvil
+  const inbox=document.getElementById('inbox');
+  const backBtn=document.getElementById('backBtn');
+  document.querySelectorAll('[data-open]').forEach(el=>{
+    el.addEventListener('click',()=>{
+      document.querySelectorAll('.chat-item').forEach(i=>i.classList.remove('active'));
+      el.classList.add('active');
+      inbox.classList.add('detail');
+      backBtn.style.display='grid';
+    });
+  });
+  backBtn.addEventListener('click',()=>{inbox.classList.remove('detail');backBtn.style.display='none';});
+})();
+</script>
 </body>
 </html>
