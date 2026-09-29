@@ -42,7 +42,7 @@
 .changed-pill i{width:.45rem;height:.45rem;border-radius:50%;background:var(--warn);animation:pulseDot 1.4s infinite}
 @keyframes pulseDot{0%,100%{opacity:1}50%{opacity:.35}}
 
-/* Side panel de preview */
+/* panel lateral de vista previa */
 .preview{position:sticky;top:5.5rem;display:flex;flex-direction:column;gap:1rem}
 .phone-mock{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden}
 .phone-head{padding:.9rem 1rem;background:var(--wa-dark);color:#fff;display:flex;align-items:center;gap:.6rem}
@@ -60,7 +60,7 @@
 {% endblock %}
 
 {% block content %}
-<form class="grid-form" id="configForm" method="post" action="{% url 'core:configuracion_bot' %}" novalidate>
+<form class="grid-form" id="configForm" method="post" action="{% url 'configuracion_bot' %}" novalidate>
   {% csrf_token %}
 
   <div class="form-wrap">
@@ -183,14 +183,14 @@
     window.toast('warn', 'Cambios descartados');
   });
 
-  /* Preview en vivo del mensaje de bienvenida */
+  /* actualizo la vista previa de la bienvenida */
   const bienvenida = document.getElementById('{{ form.bienvenida.id_for_label }}');
   const preview = document.getElementById('previewBienvenida');
   bienvenida?.addEventListener('input', e => {
     preview.firstChild.textContent = e.target.value || '¡Hola! 👋 Soy Boti…';
   });
 
-  /* Submit vía fetch para no recargar — fallback a submit normal si falla */
+  /* guardo sin recargar y muestro el error si falla */
   form.addEventListener('submit', async e => {
     e.preventDefault();
     saveBtn.disabled = true;
@@ -205,7 +205,7 @@
     }
   });
 
-  /* Aviso al salir con cambios sin guardar */
+  /* aviso si salgo con cambios sin guardar */
   window.addEventListener('beforeunload', e => {
     if(pill.classList.contains('show')){ e.preventDefault(); e.returnValue = ''; }
   });

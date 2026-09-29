@@ -35,10 +35,10 @@ button{font:inherit;cursor:pointer;border:none;background:none;color:inherit}
 a{color:inherit;text-decoration:none}
 input,select,textarea{font:inherit;color:inherit}
 
-/* ============ APP SHELL ============ */
+/* estructura de la pagina */
 .app{display:grid;grid-template-columns:260px 1fr;min-height:100vh}
 
-/* ============ SIDEBAR ============ */
+/* menu lateral */
 .sidebar{background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;gap:1.25rem;padding:1.25rem 1rem;height:100vh;position:sticky;top:0;transition:transform var(--t),background var(--t)}
 .brand{display:flex;align-items:center;gap:.65rem;padding:.25rem .5rem .5rem}
 .brand-logo{width:2.25rem;height:2.25rem;border-radius:var(--r-sm);background:linear-gradient(135deg,var(--wa),var(--aqua));display:grid;place-items:center;color:#fff;flex:none;box-shadow:0 4px 14px rgba(37,211,102,.35)}
@@ -59,10 +59,10 @@ input,select,textarea{font:inherit;color:inherit}
 .user-info strong{font-size:.85rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .user-info span{font-size:.72rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
-/* ============ MAIN WRAP ============ */
+/* contenedor principal */
 .main-wrap{display:flex;flex-direction:column;min-width:0}
 
-/* ============ NAVBAR ============ */
+/* barra de navegacion */
 .navbar{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:.85rem;padding:.85rem clamp(1rem,3vw,2rem);background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid var(--border)}
 .menu-btn{display:none}
 .page-title{font-size:clamp(1rem,1.6vw,1.15rem);font-weight:600}
@@ -77,7 +77,7 @@ input,select,textarea{font:inherit;color:inherit}
 .icon-btn svg{width:1.15rem;height:1.15rem}
 .dot-badge{position:absolute;top:.45rem;right:.5rem;width:.55rem;height:.55rem;border-radius:50%;background:var(--danger);border:2px solid var(--bg)}
 
-/* ============ DROPDOWNS ============ */
+/* menus desplegables */
 .dropdown{position:absolute;top:calc(100% + .5rem);right:0;min-width:240px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);box-shadow:var(--shadow-lg);padding:.4rem;opacity:0;transform:translateY(-6px);pointer-events:none;transition:opacity var(--t),transform var(--t);z-index:30}
 .dropdown.open{opacity:1;transform:translateY(0);pointer-events:auto}
 .dropdown-head{padding:.75rem;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:.65rem}
@@ -97,18 +97,18 @@ input,select,textarea{font:inherit;color:inherit}
 .notif p{font-size:.83rem;line-height:1.4}
 .notif time{font-size:.7rem;color:var(--muted)}
 
-/* ============ CONTENIDO ============ */
+/* contenido de la pagina */
 .content{flex:1;padding:clamp(1.25rem,3vw,2.5rem) clamp(1rem,3vw,2rem);display:flex;justify-content:center}
 .page-wrap{width:100%;max-width:1100px;display:flex;flex-direction:column;gap:1.5rem}
 .page-head{display:flex;flex-direction:column;gap:.35rem}
 .page-head h1{font-size:clamp(1.4rem,2.6vw,1.85rem);font-weight:700;letter-spacing:-.02em}
 .page-head p{color:var(--muted);font-size:.94rem;max-width:60ch}
 
-/* ============ CARD BASE ============ */
+/* estilo base de las tarjetas */
 .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);box-shadow:var(--shadow-sm);transition:background var(--t),border-color var(--t),box-shadow var(--t)}
 .card-pad{padding:clamp(1.25rem,3vw,2rem)}
 
-/* ============ BOTONES ============ */
+/* botones */
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:.5rem;padding:.85rem 1.5rem;border-radius:var(--r-sm);font-weight:600;font-size:.95rem;transition:transform var(--t),box-shadow var(--t),background var(--t);white-space:nowrap}
 .btn-primary{background:var(--wa);color:#fff;box-shadow:0 8px 22px rgba(37,211,102,.32)}
 .btn-primary:hover{background:var(--wa-hover);transform:translateY(-1px);box-shadow:0 12px 28px rgba(37,211,102,.42)}
@@ -119,7 +119,7 @@ input,select,textarea{font:inherit;color:inherit}
 .btn svg{width:1.1rem;height:1.1rem}
 .btn[disabled]{opacity:.5;pointer-events:none}
 
-/* ============ TOASTS ============ */
+/* avisos temporales */
 .toasts{position:fixed;bottom:1.25rem;right:1.25rem;z-index:100;display:flex;flex-direction:column;gap:.6rem;max-width:min(90vw,360px)}
 .toast{display:flex;align-items:flex-start;gap:.65rem;padding:.85rem 1rem;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);box-shadow:var(--shadow-lg);animation:toastIn .35s cubic-bezier(.2,.8,.3,1) both;position:relative;overflow:hidden}
 .toast::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--wa)}
@@ -136,14 +136,14 @@ input,select,textarea{font:inherit;color:inherit}
 @keyframes toastIn{from{opacity:0;transform:translateY(8px) scale(.96)}to{opacity:1;transform:none}}
 @keyframes toastOut{to{opacity:0;transform:translateX(20px)}}
 
-/* ============ OVERLAY ============ */
+/* fondo del menu abierto */
 .overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);opacity:0;pointer-events:none;transition:opacity var(--t);z-index:40}
 .overlay.show{opacity:1;pointer-events:auto}
 
-/* ============ MOBILE ACTION BAR ============ */
+/* barra de acciones en celular */
 .mobile-bar{display:none;position:sticky;bottom:0;z-index:15;padding:.75rem 1rem;background:color-mix(in srgb,var(--bg) 92%,transparent);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-top:1px solid var(--border)}
 
-/* ============ RESPONSIVE ============ */
+/* ajustes para pantallas pequenas */
 @media (max-width:960px){
   .app{grid-template-columns:1fr}
   .sidebar{position:fixed;left:0;top:0;z-index:50;width:min(280px,82vw);transform:translateX(-105%);box-shadow:var(--shadow-lg)}
@@ -164,7 +164,7 @@ input,select,textarea{font:inherit;color:inherit}
 {% with url_name=request.resolver_match.url_name %}
 <div class="app {% block app_class %}{% endblock %}" id="app">
 
-  <!-- ============ SIDEBAR ============ -->
+  <!-- menu lateral -->
   <aside class="sidebar" id="sidebar">
     <div class="brand">
       <span class="brand-logo"><svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20"><path d="M12 2C6.5 2 2 6.5 2 12c0 1.8.5 3.5 1.3 5L2 22l5.2-1.3c1.4.8 3.1 1.3 4.8 1.3 5.5 0 10-4.5 10-10S17.5 2 12 2z"/></svg></span>
@@ -173,16 +173,16 @@ input,select,textarea{font:inherit;color:inherit}
     </div>
 
     <nav class="nav">
-      <a class="nav-item {% if url_name == 'dashboard' %}active{% endif %}" href="{% url 'core:dashboard' %}">
+      <a class="nav-item {% if url_name == 'dashboard' %}active{% endif %}" href="{% url 'dashboard' %}">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3zM20 14v3M14 20h3M20 20h.01"/></svg>
         Conexión
       </a>
-      <a class="nav-item {% if url_name == 'atencion_humana' %}active{% endif %}" href="{% url 'core:atencion_humana' %}">
+      <a class="nav-item {% if url_name == 'atencion_humana' %}active{% endif %}" href="{% url 'atencion_humana' %}">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
         Conversaciones
         {% if pending_count %}<span class="badge">{{ pending_count }}</span>{% endif %}
       </a>
-      <a class="nav-item {% if url_name == 'configuracion_bot' %}active{% endif %}" href="{% url 'core:configuracion_bot' %}">
+      <a class="nav-item {% if url_name == 'configuracion_bot' %}active{% endif %}" href="{% url 'configuracion_bot' %}">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
         Configuración
       </a>
@@ -208,7 +208,7 @@ input,select,textarea{font:inherit;color:inherit}
 
   <div class="main-wrap">
 
-    <!-- ============ NAVBAR ============ -->
+    <!-- barra de navegacion -->
     <header class="navbar">
       <button class="icon-btn menu-btn" id="menuToggle" aria-label="Abrir menú">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
@@ -259,7 +259,7 @@ input,select,textarea{font:inherit;color:inherit}
             <span id="themeLabel">Modo oscuro</span>
           </button>
           <div class="dropdown-sep"></div>
-          <form method="post" action="{% url 'logout' %}" style="margin:0">
+          <form method="post" action="{% url 'salir' %}" style="margin:0">
             {% csrf_token %}
             <button type="submit" class="dropdown-item danger">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5M21 12H9"/></svg>
@@ -270,7 +270,7 @@ input,select,textarea{font:inherit;color:inherit}
       </div>
     </header>
 
-    <!-- ============ CONTENIDO ============ -->
+    <!-- contenido de la pagina -->
     <main class="content">
       {% block content %}{% endblock %}
     </main>
@@ -283,10 +283,10 @@ input,select,textarea{font:inherit;color:inherit}
 
 <div class="toasts" id="toasts"></div>
 
-<!-- CSRF para llamadas fetch -->
+<!-- clave de proteccion para las peticiones -->
 <script>window.CSRF_TOKEN = "{{ csrf_token }}";</script>
 
-<!-- Mensajes del framework Django → toasts -->
+<!-- paso los mensajes del servidor a la pagina -->
 {% if messages %}
 <script>
   window.__DJANGO_MESSAGES__ = [
@@ -299,7 +299,7 @@ input,select,textarea{font:inherit;color:inherit}
 (function(){
   const root = document.documentElement;
 
-  /* ============ TEMA ============ */
+  /* cambio y guardo el tema */
   const saved = localStorage.getItem('boti-theme');
   if(saved) root.setAttribute('data-theme', saved);
   const themeLabel = document.getElementById('themeLabel');
@@ -320,14 +320,14 @@ input,select,textarea{font:inherit;color:inherit}
     closeAllDropdowns();
   });
 
-  /* ============ SIDEBAR ============ */
+  /* menu lateral */
   const sb = document.getElementById('sidebar'), ov = document.getElementById('overlay');
   const closeSide = () => { sb?.classList.remove('open'); ov?.classList.remove('show'); };
   document.getElementById('menuToggle')?.addEventListener('click', () => { sb.classList.add('open'); ov.classList.add('show'); });
   document.getElementById('closeSide')?.addEventListener('click', closeSide);
   ov?.addEventListener('click', closeSide);
 
-  /* ============ DROPDOWNS ============ */
+  /* menus desplegables */
   const dropdowns = [
     { btn: 'notifBtn',   dd: 'notifDropdown' },
     { btn: 'profileBtn', dd: 'profileDropdown' }
@@ -347,7 +347,7 @@ input,select,textarea{font:inherit;color:inherit}
   document.addEventListener('click', closeAllDropdowns);
   window.closeAllDropdowns = closeAllDropdowns;
 
-  /* ============ TOASTS ============ */
+  /* avisos temporales */
   const ICONS = {
     success: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>',
     error:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>',
@@ -361,12 +361,12 @@ input,select,textarea{font:inherit;color:inherit}
     setTimeout(() => { t.classList.add('out'); setTimeout(() => t.remove(), 300); }, 3400);
   };
 
-  /* ============ MENSAJES DJANGO → TOASTS ============ */
+  /* muestro los mensajes del servidor */
   if(window.__DJANGO_MESSAGES__){
     window.__DJANGO_MESSAGES__.forEach(m => window.toast(m.tags, m.text));
   }
 
-  /* ============ FETCH HELPER ============ */
+  /* envio peticiones con la clave de proteccion */
   window.api = async function(url, opts = {}){
     const headers = Object.assign({
       'X-CSRFToken': window.CSRF_TOKEN,

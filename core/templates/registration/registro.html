@@ -6,7 +6,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Boti · Crear cuenta</title>
 <style>
-/* Mismo bloque que login.html, cambio solo el orden del grid y el strength meter */
+/* estilos del registro y del indicador de seguridad de la clave */
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
   --wa:#25D366;--wa-hover:#1EBE5A;--wa-dark:#128C7E;
@@ -125,7 +125,7 @@ a{color:inherit;text-decoration:none}
       </label>
 
       <button class="btn" type="submit">Crear cuenta gratis</button>
-      <p class="foot">¿Ya tienes cuenta? <a href="{% url 'login' %}">Inicia sesión</a></p>
+      <p class="foot">¿Ya tienes cuenta? <a href="{% url 'ingresar' %}">Inicia sesión</a></p>
     </form>
   </main>
 

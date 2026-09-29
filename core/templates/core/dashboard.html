@@ -6,7 +6,7 @@
 {% block app_class %}{% if whatsapp_connected %}connected{% else %}disconnected{% endif %}{% endblock %}
 
 {% block extra_css %}
-/* QR card, timer, manual, side panel, success view */
+/* estilos del codigo de conexion, contador y panel lateral */
 .qr-card{display:flex;flex-direction:column;align-items:center;gap:1.5rem;text-align:center}
 .qr-eyebrow{display:inline-flex;align-items:center;gap:.4rem;font-size:.75rem;font-weight:600;letter-spacing:.02em;text-transform:uppercase;color:var(--aqua-dark);background:var(--aqua-soft);padding:.35rem .8rem;border-radius:999px}
 .qr-eyebrow i{width:.45rem;height:.45rem;border-radius:50%;background:var(--aqua);animation:pulseDot 1.6s infinite}
@@ -104,7 +104,7 @@
   <div class="grid-main">
     <div style="display:flex;flex-direction:column;gap:1.25rem;min-width:0">
 
-      <!-- ============ VISTA DESCONECTADO ============ -->
+      <!-- vista sin conexion -->
       <section class="disconnected-view card card-pad qr-card" style="display:flex">
         <span class="qr-eyebrow"><i></i>Esperando vinculación</span>
         <div>
@@ -173,7 +173,7 @@
         </div>
       </section>
 
-      <!-- ============ VISTA CONECTADO ============ -->
+      <!-- vista con conexion -->
       <section class="connected-view card card-pad success-card" style="display:none">
         <div class="success-icon">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
@@ -194,7 +194,7 @@
         </div>
 
         <div class="actions-row">
-          <a class="btn btn-primary" href="{% url 'core:atencion_humana' %}">
+          <a class="btn btn-primary" href="{% url 'atencion_humana' %}">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
             Ir a conversaciones
           </a>
@@ -207,7 +207,7 @@
 
     </div>
 
-    <!-- ============ SIDE PANEL ============ -->
+    <!-- panel lateral -->
     <aside class="side-panel">
       <div class="side-card">
         <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>Cómo funciona</h3>
@@ -270,12 +270,12 @@
   const timerEl = document.getElementById('timer');
   const timerText = document.getElementById('timerText');
   const timerFill = document.getElementById('timerFill');
-  const REGEN_URL = "{% url 'core:regenerate_qr' %}";
-  const DISCONNECT_URL = "{% url 'core:desconectar_whatsapp' %}";
+  const REGEN_URL = "{% url 'conectar_whatsapp' %}";
+  const DISCONNECT_URL = "{% url 'desconectar_whatsapp' %}";
   const TOTAL = {{ qr_expires_in|default:120 }};
   let remaining = parseInt(timerText.textContent, 10) || TOTAL;
 
-  /* Tabs */
+  /* cambio entre las formas de conexion */
   document.querySelectorAll('.seg button').forEach(btn => {
     btn.addEventListener('click', () => {
       document.querySelectorAll('.seg button').forEach(b => b.setAttribute('aria-selected','false'));
@@ -286,7 +286,7 @@
     });
   });
 
-  /* Copiar código manual */
+  /* copio el codigo manual */
   document.getElementById('copyCode')?.addEventListener('click', function(){
     const code = Array.from(document.querySelectorAll('#manualCode span')).map(s => s.textContent).join('');
     navigator.clipboard?.writeText(code).catch(()=>{});
@@ -295,7 +295,7 @@
     setTimeout(() => this.classList.remove('copied'), 2000);
   });
 
-  /* Timer */
+  /* actualizo el tiempo restante */
   function tick(){
     if(app.classList.contains('connected') || remaining <= 0) return;
     remaining--;
@@ -311,11 +311,11 @@
   }
   setInterval(tick, 1000);
 
-  /* Regenerar QR */
+  /* solicito otro codigo de conexion */
   async function regenerate(){
     try {
       const data = await window.api(REGEN_URL, { method: 'POST' });
-      // El backend devuelve { qr_code, expires_in, manual_code }
+      // leo el codigo y el tiempo recibidos del servidor
       if(data.qr_code){
         document.querySelector('.qr-img')?.setAttribute('src', data.qr_code);
       }
@@ -330,7 +330,7 @@
   }
   document.querySelectorAll('[data-regen]').forEach(b => b.addEventListener('click', regenerate));
 
-  /* Desconectar */
+  /* desconecto la cuenta */
   document.getElementById('disconnectBtn')?.addEventListener('click', async () => {
     if(!confirm('¿Seguro que quieres desconectar WhatsApp?')) return;
     try {
@@ -341,7 +341,7 @@
     }
   });
 
-  /* Simular conexión en DEBUG */
+  /* simulo la conexion en la vista */
   document.getElementById('simulateConnect')?.addEventListener('click', () => {
     app.classList.remove('disconnected');
     app.classList.add('connected');

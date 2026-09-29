@@ -73,7 +73,7 @@
     <div class="chat-items" id="chatItems">
       {% for conv in conversations %}
         <a class="chat-item {% if active_conversation and conv.id == active_conversation.id %}active{% endif %}"
-           href="{% url 'core:atencion_humana' %}?c={{ conv.id }}"
+           href="{% url 'atencion_humana' %}?c={{ conv.id }}"
            data-id="{{ conv.id }}"
            data-name="{{ conv.contact_name|escapejs }}">
           <div class="avatar">{{ conv.contact_name|slice:":1"|upper }}</div>
@@ -132,7 +132,7 @@
         {% endfor %}
       </div>
 
-      <form class="chat-input" id="chatForm" method="post" action="{% url 'core:atencion_humana' %}">
+      <form class="chat-input" id="chatForm" method="post" action="{% url 'atencion_humana' %}">
         {% csrf_token %}
         <input type="hidden" name="conversation_id" value="{{ active_conversation.id }}">
         <input type="text" name="message" placeholder="Escribe un mensaje…" autocomplete="off" required>
@@ -158,10 +158,10 @@
   const backBtn = document.getElementById('backBtn');
   const body = document.getElementById('chatBody');
 
-  /* Scroll al último mensaje */
+  /* bajo al ultimo mensaje */
   if(body) body.scrollTop = body.scrollHeight;
 
-  /* Maestro-detalle en móvil */
+  /* abro el chat y vuelvo a la lista en celular */
   document.querySelectorAll('[data-id]').forEach(el => {
     el.addEventListener('click', () => {
       inbox.classList.add('detail');
@@ -174,7 +174,7 @@
     backBtn.style.display = 'none';
   });
 
-  /* Envío de mensaje vía fetch */
+  /* envio el mensaje sin recargar */
   const form = document.getElementById('chatForm');
   form?.addEventListener('submit', async e => {
     e.preventDefault();
@@ -183,7 +183,7 @@
     if(!text) return;
     input.value = '';
 
-    /* Burbuja optimista */
+    /* muestro el mensaje antes de confirmar el envio */
     const el = document.createElement('div');
     el.className = 'bubble out';
     el.innerHTML = text + '<small>ahora</small>';
@@ -192,20 +192,24 @@
 
     try {
       await window.api(form.action, { method: 'POST', body: new FormData(form), });
-      // Nota: para que el mensaje salga con timestamp real, recarga parcial o websocket
+      // pendiente mostrar la hora real del mensaje
     } catch(err){
       window.toast('error', 'No se pudo enviar', err.message);
       el.style.opacity = '.5';
     }
   });
 
-  /* Acciones sobre la conversación */
+  /* devuelvo la conversacion al bot o la cierro */
   document.querySelectorAll('[data-action]').forEach(b => {
     b.addEventListener('click', async () => {
       const action = b.dataset.action;
+      {% if active_conversation %}
       const url = action === 'return'
-        ? "{% url 'core:devolver_al_bot' %}"
-        : "{% url 'core:cerrar_conversacion' %}";
+        ? "{% url 'cambiar_estado_conversacion' active_conversation.id 'bot' %}"
+        : "{% url 'cambiar_estado_conversacion' active_conversation.id 'cerrada' %}";
+      {% else %}
+      return;
+      {% endif %}
       const convId = {{ active_conversation.id|default:"null" }};
       if(!convId) return;
       try {
@@ -218,7 +222,7 @@
     });
   });
 
-  /* Búsqueda local */
+  /* filtro las conversaciones de la lista */
   const searchInput = document.getElementById('searchInput');
   const items = document.querySelectorAll('.chat-item');
   searchInput?.addEventListener('input', e => {
