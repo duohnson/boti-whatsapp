@@ -6,7 +6,7 @@ Atención: El proyecto está en pleno desarrollo. Las sesiones no tienen medidas
 
 Dentro de un tiempo estara mejor armado, le falta mucho..
 
-No posee frontend, el frontend es demasiado basico, apenas para configurar el codigo QR y hacer pruebas.
+El panel permite vincular whatsapp por qr o codigo manual, configurar el bot, editar sus pasos, atender conversaciones y consultar metricas.
 Como conecto mi whatsapp? por codigo QR con la libreria de whatsapp-web.js que es un cliente de whatsapp no oficial.
 Como se comunican? por medio de http, node se comunica con django y django con node.
 
@@ -26,7 +26,7 @@ El repositorio está dividido en dos partes principales:
 
 ## Instalación
 
-Necesitas tener Python 3.11+ y Node.js 18+ instalados.
+Necesitas tener la version de Python compatible con requirements.txt y Node.js 22+ instalados.
 
 1. Clona el repositorio e ingresa a la carpeta:
 ```bash
@@ -96,3 +96,30 @@ La comunicación entre Node.js y Django funciona mediante peticiones HTTP. Es cl
 El panel te pedirá conectar tu cuenta de WhatsApp escaneando un código QR. Ese código lo genera Node.js, y se lo pasa a Django para que lo renderice en la web.
 
 Si necesitas modificar la lectura o envío de mensajes de WhatsApp, el archivo principal es `servicio_whatsapp/servidor.js`. Si vas a cambiar cómo el bot decide qué responder o cómo se guardan los datos, revisa la aplicación `core/` de Django.
+
+
+## actualizacion del panel
+
+la revision y el plan aplicado estan en [REVISION.md](REVISION.md). se conserva el diseño del frontend y se conectan sus funciones con django y node.
+
+antes de reiniciar los servicios despues de actualizar:
+
+```bash
+source .venv/bin/activate
+python manage.py migrate
+```
+
+node requiere version 22 o superior y carga el `.env` de la raiz. las variables ya definidas por el servicio tienen prioridad. reinicia tanto django como el proceso de whatsapp. la reapertura de conversaciones queda activada por defecto y se puede cambiar en configuracion.
+
+para produccion configura `DJANGO_ALLOWED_HOSTS` con el dominio y `DJANGO_CSRF_TRUSTED_ORIGINS` con su origen https. la url interna de django debe ser accesible desde node y su host debe estar permitido.
+
+```env
+DJANGO_ALLOWED_HOSTS=boti.duohnson.com,127.0.0.1,localhost
+DJANGO_CSRF_TRUSTED_ORIGINS=https://boti.duohnson.com
+```
+
+si activas la redireccion obligatoria a https, verifica que las llamadas internas de node tambien lleguen a django sin ser redirigidas. no actives `DEBUG` en produccion para resolver un error.
+
+la actualizacion aplica las migraciones 0008 a 0010. conserva la carpeta `servicio_whatsapp/entregas/` entre despliegues, o configura `WHATSAPP_DELIVERY_DIR` con una ruta persistente. ese registro evita repetir entregas confirmadas. conserva tambien los archivos de media del historial.
+
+el panel incluye simulador, revision de flujos, equipo, entregas pendientes e importacion y exportacion. los reintentos no consumen otra respuesta de ia. revisa en whatsapp las entregas sin confirmacion antes de marcarlas como enviadas. los detalles de operacion y las pruebas estan en `REVISION.md`.

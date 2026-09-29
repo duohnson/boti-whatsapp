@@ -1,0 +1,10 @@
+{% extends 'core/base.html' %}
+{% block title %}Boti · Equipo{% endblock %}
+{% block page_title %}Equipo{% endblock %}
+{% block content %}
+<section class="page-wrap">
+  <header class="page-head"><h1>Atención en equipo</h1><p>Agrega cuentas registradas para que atiendan conversaciones de esta empresa. Solo tú puedes modificar el flujo y la conexión.</p></header>
+  <form class="card card-pad" method="post">{% csrf_token %}<label class="campo" for="usuario-agente">Usuario del agente<input id="usuario-agente" name="usuario" required maxlength="150"></label><button class="btn btn-primary" type="submit">Dar acceso a la atención</button></form>
+  {% for miembro in miembros %}<article class="card card-pad"><h2>{{ miembro.usuario.username }}</h2><p>Puede ver y responder los chats de esta empresa desde su selector de empresa.</p><form method="post">{% csrf_token %}<button class="btn btn-ghost" name="quitar" value="{{ miembro.pk }}" type="submit">Retirar acceso</button></form></article>{% empty %}<p>Aún no agregaste agentes.</p>{% endfor %}
+</section>
+{% endblock %}

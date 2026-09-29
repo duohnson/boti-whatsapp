@@ -1,0 +1,24 @@
+{% extends 'core/base.html' %}
+{% block title %}Boti · Métricas{% endblock %}
+{% block page_title %}Métricas{% endblock %}
+{% block content %}
+<div class="page-wrap">
+<h1>Métricas de tu cuenta</h1>
+<section class="card card-pad">
+  <h2>Actividad</h2>
+  <p>Mensajes registrados hoy: <strong>{{ mensajes_hoy }}</strong></p>
+  <p>Conversaciones: <strong>{{ conversaciones }}</strong></p>
+  <p>Esperando atención humana: <strong>{{ pendientes }}</strong></p>
+  <p>Respuestas de IA utilizadas: <strong>{{ empresa.respuestas_ia_utilizadas }} / {{ empresa.limite_respuestas_ia }}</strong></p>
+  <p>Última conexión: <strong>{{ sesion.fecha_conexion|date:'d/m/Y H:i'|default:'Sin conexión registrada' }}</strong></p>
+  {% if sesion.estado == 'conectado' %}<p>Tiempo desde la conexión: {{ sesion.fecha_conexion|timesince }}</p>{% endif %}
+</section>
+<section class="card card-pad">
+  <h2>Mensajes por día · últimos 30 días</h2>
+  <p style="color:var(--muted)">Incluye mensajes recibidos y respuestas guardadas. Las fechas se muestran en la zona horaria del servidor.</p>
+  <table><thead><tr><th scope="col">Fecha</th><th scope="col">Mensajes</th></tr></thead><tbody>
+    {% for dia in dias %}<tr><td>{{ dia.dia|date:'d/m/Y' }}</td><td>{{ dia.total }}</td></tr>{% empty %}<tr><td colspan="2">Todavía no hay mensajes.</td></tr>{% endfor %}
+  </tbody></table>
+</section>
+</div>
+{% endblock %}

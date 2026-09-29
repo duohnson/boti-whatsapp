@@ -4,6 +4,7 @@
 {% block page_title %}Configuración{% endblock %}
 
 {% block extra_css %}
+.content{flex-wrap:wrap;gap:1.5rem}
 .grid-form{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:1.5rem;align-items:start;width:100%}
 .form-wrap{width:100%;display:flex;flex-direction:column;gap:1.25rem}
 .form-head h2{font-size:clamp(1.25rem,2.4vw,1.6rem);font-weight:700;letter-spacing:-.02em}
@@ -60,7 +61,16 @@
 {% endblock %}
 
 {% block content %}
-<form class="grid-form" id="configForm" method="post" action="{% url 'configuracion_bot' %}" novalidate>
+<section class="page-wrap card card-pad">
+  <h2>Revisar y probar el flujo</h2>
+  {% if avisos_flujo %}<ul>{% for aviso in avisos_flujo %}<li>{{ aviso }}</li>{% endfor %}</ul>{% else %}<p>No se encontraron problemas en las conexiones del flujo.</p>{% endif %}
+  <p><a class="btn btn-primary" href="{% url 'simulador' %}">Probar sin WhatsApp</a> <a class="btn btn-ghost" href="{% url 'descargar_flujo' %}">Exportar flujo</a></p>
+  <details><summary>Importar un flujo</summary>
+    <p>Se agregan los pasos y sus PDF. No se borran los actuales ni se reemplaza su inicio. Máximo 25 MB.</p>
+    <form method="post" enctype="multipart/form-data" action="{% url 'cargar_flujo' %}">{% csrf_token %}<label class="campo">Archivo JSON<input type="file" name="flujo" accept=".json,application/json" required></label><button class="btn btn-primary" type="submit">Importar</button></form>
+  </details>
+</section>
+<form class="grid-form" id="configForm" method="post" action="{% url 'configuracion_bot' %}">
   {% csrf_token %}
 
   <div class="form-wrap">
@@ -69,27 +79,27 @@
       <p>Define cómo responde tu asistente y cuándo debe derivar a una persona.</p>
     </div>
 
-    {% if form.non_field_errors %}
+    {% if formulario.errors %}
       <div class="card2" style="border-color:var(--danger);background:var(--danger-soft);color:var(--danger);padding:1rem">
-        {{ form.non_field_errors }}
+        {{ formulario.errors }}
       </div>
     {% endif %}
 
     <section class="card2">
       <div class="card-head">
         <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span>
-        <div><h3>Mensajes automáticos</h3><p>Texto de bienvenida y despedida del asistente.</p></div>
+        <div><h3>Mensajes automáticos</h3><p>Bienvenida antes del primer paso y despedida al cerrar desde el panel.</p></div>
       </div>
       <div class="field">
-        <label for="{{ form.bienvenida.id_for_label }}">{{ form.bienvenida.label }}</label>
-        {{ form.bienvenida }}
-        {% if form.bienvenida.help_text %}<small>{{ form.bienvenida.help_text }}</small>{% endif %}
-        {{ form.bienvenida.errors }}
+        <label for="{{ formulario.bienvenida.id_for_label }}">{{ formulario.bienvenida.label }}</label>
+        {{ formulario.bienvenida }}
+        {% if formulario.bienvenida.help_text %}<small>{{ formulario.bienvenida.help_text }}</small>{% endif %}
+        {{ formulario.bienvenida.errors }}
       </div>
       <div class="field">
-        <label for="{{ form.despedida.id_for_label }}">{{ form.despedida.label }}</label>
-        {{ form.despedida }}
-        {{ form.despedida.errors }}
+        <label for="{{ formulario.despedida.id_for_label }}">{{ formulario.despedida.label }}</label>
+        {{ formulario.despedida }}
+        {{ formulario.despedida.errors }}
       </div>
     </section>
 
@@ -98,37 +108,52 @@
         <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4M4.9 19.1l2.8-2.8M16.3 7.7l2.8-2.8"/></svg></span>
         <div><h3>Comportamiento</h3><p>Ajusta la inteligencia y la derivación a humanos.</p></div>
       </div>
+      <div class="field">{{ formulario.prompt_sistema_ia.label_tag }}{{ formulario.prompt_sistema_ia }}{{ formulario.prompt_sistema_ia.errors }}</div>
+      <label class="switch">{{ formulario.ia_desde_primer_mensaje }} Responder con IA desde el primer mensaje</label>
       <div class="grid-2">
         <div class="field">
-          <label for="{{ form.tono.id_for_label }}">{{ form.tono.label }}</label>
-          {{ form.tono }}
+          <label for="{{ formulario.tono.id_for_label }}">{{ formulario.tono.label }}</label>
+          {{ formulario.tono }}
         </div>
         <div class="field">
-          <label for="{{ form.idioma.id_for_label }}">{{ form.idioma.label }}</label>
-          {{ form.idioma }}
+          <label for="{{ formulario.idioma.id_for_label }}">{{ formulario.idioma.label }}</label>
+          {{ formulario.idioma }}
         </div>
       </div>
 
       <div class="switch">
         <div class="txt"><strong>Derivar a humano automáticamente</strong><span>Cuando el usuario pida hablar con una persona.</span></div>
-        <label class="tgl">{{ form.derivar_auto }}<span></span></label>
+        <label class="tgl">{{ formulario.derivar_auto }}<span></span></label>
       </div>
       <div class="switch">
         <div class="txt"><strong>Responder fuera de horario</strong><span>Envía un mensaje indicando que volverás pronto.</span></div>
-        <label class="tgl">{{ form.fuera_horario }}<span></span></label>
+        <label class="tgl">{{ formulario.fuera_horario }}<span></span></label>
       </div>
+      <details>
+        <summary>Horario diario y aviso</summary>
+        {% for campo in formulario %}{% if campo.name == 'horario_inicio' or campo.name == 'horario_fin' or campo.name == 'zona_horaria' or campo.name == 'mensaje_fuera_horario' %}
+        <p class="field">{{ campo.label_tag }}{{ campo }}{{ campo.errors }}</p>
+        {% endif %}{% endfor %}
+        <small>Se aplica todos los días. Si el fin es anterior al inicio, el horario cruza la medianoche.</small>
+      </details>
     </section>
 
+    <section class="card2">
+      <h3>Saldo y continuidad</h3>
+      <p>{{ empresa.respuestas_ia_utilizadas }} respuestas usadas de {{ empresa.limite_respuestas_ia }}. Saldo: <strong>{{ saldo_ia }}</strong>. El saldo cuenta respuestas generadas; reintentar una entrega no lo consume otra vez.</p>
+      {% for campo in formulario %}{% if campo.name == 'max_mensajes_ia' or campo.name == 'accion_limite_ia' or campo.name == 'mensaje_limite_ia' or campo.name == 'reabrir_conversaciones' %}<p class="field">{{ campo.label_tag }}{{ campo }}{{ campo.errors }}</p>{% endif %}{% endfor %}
+      <small>La IA recibe hasta el número elegido de mensajes recientes y un máximo de 16000 caracteres de historial.</small>
+    </section>
     <section class="card2">
       <div class="card-head">
         <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/></svg></span>
         <div><h3>Palabras clave</h3><p>Frases que activan la derivación a un humano.</p></div>
       </div>
       <div class="field">
-        <label for="{{ form.palabras_clave.id_for_label }}">{{ form.palabras_clave.label }}</label>
-        {{ form.palabras_clave }}
-        <small>{{ form.palabras_clave.help_text|default:"Separa con comas." }}</small>
-        {{ form.palabras_clave.errors }}
+        <label for="{{ formulario.palabras_clave.id_for_label }}">{{ formulario.palabras_clave.label }}</label>
+        {{ formulario.palabras_clave }}
+        <small>{{ formulario.palabras_clave.help_text|default:"Separa con comas." }}</small>
+        {{ formulario.palabras_clave.errors }}
       </div>
     </section>
 
@@ -149,66 +174,41 @@
         <div><strong>Boti</strong><span>en línea</span></div>
       </div>
       <div class="phone-body">
-        <div class="bubble-mock" id="previewBienvenida">{{ form.bienvenida.value|default:"¡Hola! 👋 Soy Boti…" }}<small>12:40</small></div>
+        <div class="bubble-mock" id="previewBienvenida">{{ formulario.bienvenida.value|default:"¡Hola! 👋 Soy Boti…" }}<small>12:40</small></div>
       </div>
     </div>
 
     <div class="side-card" style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:1.1rem">
       <h3 style="font-size:.8rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:.7rem">Vista previa</h3>
-      <p style="font-size:.82rem;color:var(--muted);line-height:1.55">Los cambios se reflejan en el próximo mensaje que reciba tu bot. No afectan conversaciones en curso.</p>
+      <p style="font-size:.82rem;color:var(--muted);line-height:1.55">Los cambios se reflejan en el próximo mensaje que reciba tu bot. El tono y el idioma se aplican a la IA. Los pasos conservan el texto que escribas.</p>
     </div>
   </aside>
 </form>
+{% include "core/editor_flujos.html" %}
 {% endblock %}
 
 {% block extra_js %}
 <script>
-(function(){
-  const form = document.getElementById('configForm');
-  const pill = document.getElementById('changedPill');
-  const saveBtn = document.getElementById('saveBtn');
-  const initial = new FormData(form);
-  const initialJSON = JSON.stringify(Object.fromEntries(initial));
-
-  function checkDirty(){
-    const current = JSON.stringify(Object.fromEntries(new FormData(form)));
-    pill.classList.toggle('show', current !== initialJSON);
+(() => {
+  const formulario = document.getElementById('configForm');
+  const indicador = document.getElementById('changedPill');
+  const bienvenida = document.getElementById('{{ formulario.bienvenida.id_for_label }}');
+  const vista = document.getElementById('previewBienvenida');
+  const inicial = JSON.stringify(Object.fromEntries(new FormData(formulario)));
+  function actualizar() {
+    indicador.classList.toggle('show', JSON.stringify(Object.fromEntries(new FormData(formulario))) !== inicial);
+    vista.firstChild.textContent = bienvenida.value || '¡Hola! 👋 Soy Boti…';
   }
-  form.addEventListener('input', checkDirty);
-  form.addEventListener('change', checkDirty);
-
-  document.getElementById('resetForm').addEventListener('click', () => {
-    form.reset();
-    pill.classList.remove('show');
-    window.toast('warn', 'Cambios descartados');
+  formulario.addEventListener('input', actualizar);
+  formulario.addEventListener('change', actualizar);
+  document.getElementById('resetForm').addEventListener('click', () => { formulario.reset(); actualizar(); });
+  formulario.addEventListener('submit', () => indicador.classList.remove('show'));
+  window.addEventListener('beforeunload', evento => {
+    if(indicador.classList.contains('show')) { evento.preventDefault(); evento.returnValue = ''; }
   });
-
-  /* actualizo la vista previa de la bienvenida */
-  const bienvenida = document.getElementById('{{ form.bienvenida.id_for_label }}');
-  const preview = document.getElementById('previewBienvenida');
-  bienvenida?.addEventListener('input', e => {
-    preview.firstChild.textContent = e.target.value || '¡Hola! 👋 Soy Boti…';
-  });
-
-  /* guardo sin recargar y muestro el error si falla */
-  form.addEventListener('submit', async e => {
-    e.preventDefault();
-    saveBtn.disabled = true;
-    try {
-      await window.api(form.action, { method: 'POST', body: new FormData(form) });
-      pill.classList.remove('show');
-      window.toast('success', 'Configuración guardada', 'Los cambios se aplicarán en el próximo mensaje.');
-    } catch(err){
-      window.toast('error', 'No se pudo guardar', err.message);
-    } finally {
-      saveBtn.disabled = false;
-    }
-  });
-
-  /* aviso si salgo con cambios sin guardar */
-  window.addEventListener('beforeunload', e => {
-    if(pill.classList.contains('show')){ e.preventDefault(); e.returnValue = ''; }
-  });
+  document.querySelectorAll('[data-confirmar]').forEach(formulario => formulario.addEventListener('submit', evento => {
+    if(!confirm(formulario.dataset.confirmar)) evento.preventDefault();
+  }));
 })();
 </script>
 {% endblock %}

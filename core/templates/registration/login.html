@@ -85,6 +85,7 @@ a{color:inherit;text-decoration:none}
       Boti
     </div>
     <div class="brand-hero">
+      {% include 'core/ilustraciones.html' with variante='chat' %}
       <h1>Automatiza tu WhatsApp con inteligencia.</h1>
       <p>Gestiona conversaciones, conecta tu número en segundos y deja que el bot atienda mientras tú te enfocas en lo importante.</p>
     </div>
@@ -106,7 +107,7 @@ a{color:inherit;text-decoration:none}
       {% endif %}
 
       <div class="field">
-        <label for="{{ form.username.id_for_label }}">Usuario o correo</label>
+        <label for="{{ form.username.id_for_label }}">Usuario</label>
         {{ form.username }}
         {{ form.username.errors }}
       </div>
@@ -118,7 +119,7 @@ a{color:inherit;text-decoration:none}
       </div>
 
       <div class="row-between">
-        <label class="check">{{ form.remember_me|default:"" }} Recordarme</label>
+        <label class="check"><input type="checkbox" name="recordarme" value="1"> Recordarme</label>
 
       </div>
 

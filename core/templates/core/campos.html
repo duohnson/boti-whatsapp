@@ -1,0 +1,13 @@
+{{ formulario.non_field_errors }}
+{% for campo in formulario %}
+<p class="campo">
+  {{ campo.label_tag }}
+  {% if campo.name == 'archivo_pdf' %}
+    {% if formulario.is_bound %}<small>Si adjuntaste un archivo, selecciónalo de nuevo antes de guardar.</small>{% endif %}
+    <input type="file" name="{{ campo.html_name }}" id="{{ campo.id_for_label }}" accept=".pdf,application/pdf">
+    {% if campo.value %}<label><input type="checkbox" name="{{ campo.html_name }}-clear"> Quitar el PDF actual</label>{% endif %}
+  {% else %}{{ campo }}{% endif %}
+  {% if campo.help_text %}<small>{{ campo.help_text|safe }}</small>{% endif %}
+  {{ campo.errors }}
+</p>
+{% endfor %}

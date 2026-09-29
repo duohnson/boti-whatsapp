@@ -1,8 +1,9 @@
 import uuid
+from datetime import time
 from django.conf import settings
 from django.db import models
 from django.core.exceptions import ValidationError
-from django.core.validators import FileExtensionValidator
+from django.core.validators import FileExtensionValidator, MinValueValidator, MaxValueValidator
 
 # validacion de pdf para que no supere mucho peso
 def validar_pdf(archivo):
@@ -25,6 +26,29 @@ class Empresa(models.Model):
     limite_respuestas_ia = models.PositiveIntegerField(default=100)
     respuestas_ia_utilizadas = models.PositiveIntegerField(default=0)
     activo = models.BooleanField(default=True)
+    reabrir_conversaciones = models.BooleanField(default=True)
+    max_mensajes_ia = models.PositiveSmallIntegerField(default=20, validators=[MinValueValidator(1), MaxValueValidator(50)])
+    accion_limite_ia = models.CharField(max_length=10, default='aviso', choices=[('aviso', 'Mostrar aviso'), ('humano', 'Pasar a una persona')])
+    mensaje_limite_ia = models.TextField(default='Se alcanzó el límite de respuestas de IA para esta cuenta.')
+    bienvenida = models.TextField(blank=True)
+    despedida = models.TextField(blank=True)
+    tono = models.CharField(max_length=12, default='neutral', choices=[('neutral', 'Neutral'), ('cercano', 'Cercano'), ('formal', 'Formal')])
+    idioma = models.CharField(max_length=5, default='es', choices=[('es', 'Español'), ('en', 'Inglés'), ('pt', 'Portugués')])
+    derivar_auto = models.BooleanField(default=False)
+    palabras_clave = models.CharField(max_length=500, blank=True, default='persona, agente, humano')
+    fuera_horario = models.BooleanField(default=False)
+    horario_inicio = models.TimeField(default=time(8))
+    horario_fin = models.TimeField(default=time(17))
+    zona_horaria = models.CharField(max_length=64, default='America/Costa_Rica')
+    mensaje_fuera_horario = models.TextField(default='Estamos fuera de horario. Te responderemos cuando volvamos.')
+
+class AgenteEmpresa(models.Model):
+    empresa = models.ForeignKey(Empresa, on_delete=models.CASCADE, related_name='agentes')
+    usuario = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=['empresa', 'usuario'], name='agente_empresa_unico')]
+
 
 # sesion de whatsapp al unir el codigo qr
 class SesionWhatsApp(models.Model):
@@ -32,6 +56,7 @@ class SesionWhatsApp(models.Model):
     ESTADOS = [
         ('desconectado', 'Desconectado'),
         ('esperando_qr', 'Esperando QR'),
+        ('esperando_codigo', 'Esperando código manual'),
         ('conectado', 'Conectado'),
         ('autenticando', 'Autenticando'),
         ('error', 'Error'),
@@ -42,6 +67,7 @@ class SesionWhatsApp(models.Model):
     numero_telefono = models.CharField(max_length=32, blank=True)
     estado = models.CharField(max_length=20, choices=ESTADOS, default='desconectado')
     codigo_qr = models.TextField(blank=True)
+    codigo_manual = models.CharField(max_length=20, blank=True)
     fecha_conexion = models.DateTimeField(null=True, blank=True)
     ultima_actividad = models.DateTimeField(null=True, blank=True)
 
@@ -122,6 +148,8 @@ class SesionUsuario(models.Model):
     ]
     empresa = models.ForeignKey(Empresa, on_delete=models.CASCADE, related_name='sesiones_chat', null=True, blank=True)
     telefono_cliente = models.CharField(max_length=255)
+    asignado_a = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
+    destino_chat = models.CharField(max_length=255, blank=True)
     nodo_actual = models.ForeignKey(NodoBot, on_delete=models.SET_NULL, null=True, blank=True)
     estado = models.CharField(max_length=12, choices=ESTADOS, default='bot')
     ultima_actividad = models.DateTimeField(auto_now=True)
@@ -143,6 +171,13 @@ class HistorialChat(models.Model):
     sesion_usuario = models.ForeignKey(SesionUsuario, on_delete=models.CASCADE)
     rol = models.CharField(max_length=50, choices=ROL_OPCIONES)
     contenido = models.TextField()
+    estado_entrega = models.CharField(max_length=12, default='recibido', choices=[('recibido', 'Recibido'), ('historico', 'Sin estado anterior'), ('generado', 'Generado'), ('enviando', 'Enviando'), ('enviado', 'Enviado'), ('fallido', 'Fallido'), ('incierto', 'Sin confirmación')])
+    id_envio = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
+    respuesta_a = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True, related_name='respuestas')
+    adjunto_entrega = models.FileField(upload_to='pdfs/', blank=True)
+    opcion_pdf = models.ForeignKey(OpcionNodo, on_delete=models.SET_NULL, null=True, blank=True)
+    error_entrega = models.CharField(max_length=255, blank=True)
+    intento_entrega = models.DateTimeField(null=True, blank=True)
     identificador_mensaje = models.CharField(max_length=255, blank=True)
     fecha = models.DateTimeField(auto_now_add=True)
 

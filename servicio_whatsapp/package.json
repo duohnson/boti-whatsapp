@@ -2,6 +2,7 @@
   "name": "servicio-whatsapp",
   "version": "1.0.0",
   "private": true,
+  "engines": {"node": ">=22"},
   "description": "Proceso WhatsApp Web para el panel Django",
   "scripts": {
     "start": "node servidor.js",

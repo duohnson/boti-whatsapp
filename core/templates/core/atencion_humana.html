@@ -26,14 +26,14 @@
 .tag.mine{background:var(--aqua-soft);color:var(--aqua-dark)}
 
 .chat-panel{display:flex;flex-direction:column;background:var(--surface-2);min-width:0}
-.chat-panel-head{padding:1rem 1.25rem;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:.75rem}
+.chat-panel-head{flex-wrap:wrap;padding:1rem 1.25rem;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:.75rem}
 .chat-panel-head .avatar{width:2.25rem;height:2.25rem}
 .chat-panel-head h3{font-size:.95rem;font-weight:600}
 .chat-panel-head span{display:block;font-size:.75rem;color:var(--wa-dark);font-weight:600}
 .chat-panel-head .actions{margin-left:auto;display:flex;gap:.25rem}
 
 .chat-body{flex:1;overflow-y:auto;padding:1.5rem;display:flex;flex-direction:column;gap:.75rem}
-.bubble{max-width:min(70%,520px);padding:.7rem 1rem;border-radius:14px;font-size:.9rem;line-height:1.45;box-shadow:var(--shadow-sm);position:relative;word-wrap:break-word}
+.bubble{white-space:pre-wrap;max-width:min(70%,520px);padding:.7rem 1rem;border-radius:14px;font-size:.9rem;line-height:1.45;box-shadow:var(--shadow-sm);position:relative;word-wrap:break-word}
 .bubble.in{align-self:flex-start;background:var(--surface);border-bottom-left-radius:4px}
 .bubble.out{align-self:flex-end;background:var(--wa);color:#fff;border-bottom-right-radius:4px}
 .bubble small{display:block;font-size:.65rem;opacity:.7;margin-top:.3rem;text-align:right}
@@ -58,10 +58,11 @@
   .inbox.detail .chat-list{display:none}
   .inbox.detail .chat-panel{display:flex}
 }
+.back-btn{display:none}@media(max-width:960px){.back-btn{display:grid}}
 {% endblock %}
 
 {% block content %}
-<main class="inbox" id="inbox">
+<section class="inbox {% if conversacion %}detail{% endif %}" id="inbox">
   <section class="chat-list">
     <div class="chat-list-head">
       <h2>Bandeja de entrada</h2>
@@ -71,20 +72,20 @@
       </div>
     </div>
     <div class="chat-items" id="chatItems">
-      {% for conv in conversations %}
-        <a class="chat-item {% if active_conversation and conv.id == active_conversation.id %}active{% endif %}"
+      {% for conv in conversaciones %}
+        <a class="chat-item {% if conversacion and conv.id == conversacion.id %}active{% endif %}"
            href="{% url 'atencion_humana' %}?c={{ conv.id }}"
            data-id="{{ conv.id }}"
-           data-name="{{ conv.contact_name|escapejs }}">
-          <div class="avatar">{{ conv.contact_name|slice:":1"|upper }}</div>
+           data-name="{{ conv.telefono_cliente|escapejs }}">
+          <div class="avatar">{{ conv.telefono_cliente|slice:":1"|upper }}</div>
           <div class="chat-meta">
             <div class="row">
-              <strong>{{ conv.contact_name }}</strong>
-              <time>{{ conv.last_message_at|timesince }}</time>
+              <strong>{{ conv.telefono_cliente }}</strong>
+              <time>{{ conv.ultima_actividad|timesince }}</time>
             </div>
-            <p>{{ conv.last_message|truncatechars:60 }}</p>
-            {% if conv.needs_human %}<span class="tag">Requiere humano</span>{% endif %}
-            {% if conv.assigned_to %}<span class="tag mine">Asignada a {{ conv.assigned_to.get_short_name|default:conv.assigned_to.username }}</span>{% endif %}
+            <p>{{ conv.ultimo_mensaje|truncatechars:60 }}</p>
+            {% if conv.estado == 'humano' %}<span class="tag">Requiere humano</span>{% endif %}
+            {% if conv.asignado_a %}<span class="tag mine">Asignada a {{ conv.asignado_a.username }}</span>{% endif %}
           </div>
         </a>
       {% empty %}
@@ -97,31 +98,32 @@
   </section>
 
   <section class="chat-panel" id="chatPanel">
-    {% if active_conversation %}
+    {% if conversacion %}
       <header class="chat-panel-head">
-        <button class="icon-btn back-btn" id="backBtn" style="display:none" aria-label="Volver">
+        <button class="icon-btn back-btn" id="backBtn" aria-label="Volver">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
         </button>
-        <div class="avatar">{{ active_conversation.contact_name|slice:":1"|upper }}</div>
+        <div class="avatar">{{ conversacion.telefono_cliente|slice:":1"|upper }}</div>
         <div>
-          <h3>{{ active_conversation.contact_name }}</h3>
-          <span>{% if active_conversation.assigned_to %}En atención humana{% else %}Esperando asignación{% endif %}</span>
+          <h3>{{ conversacion.telefono_cliente }}</h3>
+          <span>{{ conversacion.get_estado_display }}</span><small id="agente-asignado">{% if conversacion.asignado_a %}Atiende {{ conversacion.asignado_a.username }}{% else %}Sin agente asignado{% endif %}</small>
         </div>
         <div class="actions">
-          <button class="icon-btn" aria-label="Devolver al bot" data-action="return">
+          {% if conversacion.estado == 'humano' %}<button class="btn btn-ghost" type="button" data-asignar="tomar">Tomar chat</button><button class="btn btn-ghost" type="button" data-asignar="liberar">Liberar</button>{% endif %}
+          <button class="icon-btn" aria-label="Devolver al bot" data-action="bot">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12a9 9 0 1 1-3-6.7L21 3v6h-6"/></svg>
           </button>
-          <button class="icon-btn" aria-label="Cerrar conversación" data-action="close">
+          <button class="icon-btn" aria-label="Cerrar conversación" data-action="cerrada">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
           </button>
         </div>
       </header>
 
       <div class="chat-body" id="chatBody">
-        {% for msg in messages %}
-          <div class="bubble {% if msg.is_from_agent %}out{% else %}in{% endif %}">
-            {{ msg.body }}
-            <small>{{ msg.created_at|time:"H:i" }}</small>
+        {% for mensaje in historial %}
+          <div class="bubble {% if mensaje.rol != 'user' %}out{% else %}in{% endif %}">
+            {{ mensaje.contenido }}
+            <small>{{ mensaje.fecha|time:"H:i" }} · {{ mensaje.get_estado_entrega_display }}</small>
           </div>
         {% empty %}
           <div class="empty">
@@ -132,106 +134,105 @@
         {% endfor %}
       </div>
 
-      <form class="chat-input" id="chatForm" method="post" action="{% url 'atencion_humana' %}">
+      {% if conversacion.estado == 'humano' %}
+      <form class="chat-input" id="chatForm" method="post" action="{% url 'responder_agente' conversacion.pk %}">
         {% csrf_token %}
-        <input type="hidden" name="conversation_id" value="{{ active_conversation.id }}">
-        <input type="text" name="message" placeholder="Escribe un mensaje…" autocomplete="off" required>
+        <input type="hidden" name="id_envio" value="{{ id_envio }}">
+        <input type="text" maxlength="10000" name="texto" placeholder="Escribe un mensaje…" autocomplete="off" required>
         <button class="send-btn" type="submit" aria-label="Enviar">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4z"/></svg>
         </button>
       </form>
+      <p style="padding:.4rem 1rem"><a href="{% url 'entregas' %}">Revisar entregas pendientes</a> · <button id="nueva-respuesta" type="button">Escribir otro mensaje</button></p>
+      {% endif %}
     {% else %}
       <div class="empty">
         <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div>
+        {% include 'core/ilustraciones.html' with variante='chat' %}
         <strong>Selecciona una conversación</strong>
         <p>Elige un chat de la lista para ver los mensajes y responder.</p>
       </div>
     {% endif %}
   </section>
-</main>
+</section>
 {% endblock %}
 
 {% block extra_js %}
 <script>
-(function(){
-  const inbox = document.getElementById('inbox');
-  const backBtn = document.getElementById('backBtn');
-  const body = document.getElementById('chatBody');
-
-  /* bajo al ultimo mensaje */
-  if(body) body.scrollTop = body.scrollHeight;
-
-  /* abro el chat y vuelvo a la lista en celular */
-  document.querySelectorAll('[data-id]').forEach(el => {
-    el.addEventListener('click', () => {
-      inbox.classList.add('detail');
-      if(backBtn) backBtn.style.display = 'grid';
-    });
+(() => {
+  const historial = document.getElementById('chatBody');
+  if(historial) historial.scrollTop = historial.scrollHeight;
+  document.getElementById('backBtn')?.addEventListener('click', () => document.getElementById('inbox').classList.remove('detail'));
+  document.getElementById('searchInput').addEventListener('input', evento => {
+    document.querySelectorAll('.chat-item').forEach(chat => chat.hidden = !chat.dataset.name.toLowerCase().includes(evento.target.value.toLowerCase()));
   });
-  backBtn?.addEventListener('click', e => {
-    e.preventDefault();
-    inbox.classList.remove('detail');
-    backBtn.style.display = 'none';
-  });
-
-  /* envio el mensaje sin recargar */
-  const form = document.getElementById('chatForm');
-  form?.addEventListener('submit', async e => {
-    e.preventDefault();
-    const input = form.querySelector('input[name="message"]');
-    const text = input.value.trim();
-    if(!text) return;
-    input.value = '';
-
-    /* muestro el mensaje antes de confirmar el envio */
-    const el = document.createElement('div');
-    el.className = 'bubble out';
-    el.innerHTML = text + '<small>ahora</small>';
-    body.appendChild(el);
-    body.scrollTop = body.scrollHeight;
-
+  const formulario = document.getElementById('chatForm');
+  formulario?.addEventListener('submit', async evento => {
+    evento.preventDefault();
+    const texto = formulario.querySelector('[name="texto"]');
+    const boton = formulario.querySelector('button');
+    if(boton.disabled || !texto.value.trim()) return;
+    boton.disabled = true;
+    texto.readOnly = true;
     try {
-      await window.api(form.action, { method: 'POST', body: new FormData(form), });
-      // pendiente mostrar la hora real del mensaje
-    } catch(err){
-      window.toast('error', 'No se pudo enviar', err.message);
-      el.style.opacity = '.5';
-    }
+      const datos = await window.api(formulario.action, {method:'POST', body:new FormData(formulario)});
+      if(datos.estado !== 'enviado') throw new Error('La respuesta quedó guardada en entregas pendientes. Puedes reintentar sin duplicarla.');
+      texto.value = '';
+      location.reload();
+    } catch(fallo) { window.toast('error', 'No se pudo enviar', fallo.message); }
+    finally { boton.disabled = false; texto.readOnly = false; }
   });
-
-  /* devuelvo la conversacion al bot o la cierro */
-  document.querySelectorAll('[data-action]').forEach(b => {
-    b.addEventListener('click', async () => {
-      const action = b.dataset.action;
-      {% if active_conversation %}
-      const url = action === 'return'
-        ? "{% url 'cambiar_estado_conversacion' active_conversation.id 'bot' %}"
-        : "{% url 'cambiar_estado_conversacion' active_conversation.id 'cerrada' %}";
-      {% else %}
-      return;
-      {% endif %}
-      const convId = {{ active_conversation.id|default:"null" }};
-      if(!convId) return;
+  document.getElementById('nueva-respuesta')?.addEventListener('click', () => {
+    formulario.querySelector('[name=texto]').value = '';
+    formulario.querySelector('[name=id_envio]').value = crypto.randomUUID();
+  });
+  {% if conversacion %}
+  let ultimaVersion = '';
+  async function actualizarMensajes() {
+    if(!document.hidden) {
       try {
-        await window.api(url, { method: 'POST', body: JSON.stringify({ conversation_id: convId }), headers: {'Content-Type':'application/json'} });
-        window.toast('success', action === 'return' ? 'Conversación devuelta al bot' : 'Conversación cerrada');
-        setTimeout(() => location.reload(), 600);
-      } catch(err){
-        window.toast('error', 'Error', err.message);
-      }
-    });
-  });
-
-  /* filtro las conversaciones de la lista */
-  const searchInput = document.getElementById('searchInput');
-  const items = document.querySelectorAll('.chat-item');
-  searchInput?.addEventListener('input', e => {
-    const q = e.target.value.toLowerCase();
-    items.forEach(it => {
-      const name = (it.dataset.name || '').toLowerCase();
-      it.style.display = name.includes(q) ? '' : 'none';
-    });
-  });
+        const datos = await window.api("{% url 'atencion_humana' %}?c={{ conversacion.pk }}&formato=json");
+        const version = JSON.stringify(datos);
+        if(version !== ultimaVersion) {
+          const alFinal = historial.scrollHeight - historial.scrollTop - historial.clientHeight < 80;
+          historial.replaceChildren(...datos.mensajes.map(mensaje => {
+            const burbuja = document.createElement('div');
+            burbuja.className = 'bubble ' + (mensaje.rol === 'user' ? 'in' : 'out');
+            burbuja.textContent = mensaje.contenido;
+            const hora = document.createElement('small');
+            hora.textContent = new Date(mensaje.fecha).toLocaleTimeString('es', {hour:'2-digit', minute:'2-digit'}) + ' · ' + mensaje.entrega;
+            burbuja.append(hora);
+            return burbuja;
+          }));
+          if(alFinal) historial.scrollTop = historial.scrollHeight;
+          if(formulario) formulario.hidden = datos.estado !== 'humano' || !datos.puede_responder;
+          document.getElementById('agente-asignado').textContent = datos.asignado_a ? 'Atiende ' + datos.asignado_a : 'Sin agente asignado';
+          ultimaVersion = version;
+        }
+      } catch(fallo) { console.warn('No se pudo actualizar la conversación:', fallo.message); }
+    }
+    setTimeout(actualizarMensajes, 5000);
+  }
+  actualizarMensajes();
+  document.querySelectorAll('[data-asignar]').forEach(boton => boton.addEventListener('click', async () => {
+    boton.disabled = true;
+    try {
+      await window.api("{% url 'tomar_conversacion' conversacion.pk %}", {method:'POST', body:new URLSearchParams({liberar:boton.dataset.asignar === 'liberar' ? '1' : '0'})});
+      location.reload();
+    } catch(fallo) { window.toast('error', 'No se pudo asignar', fallo.message); }
+    finally { boton.disabled = false; }
+  }));
+  document.querySelectorAll('[data-action]').forEach(boton => boton.addEventListener('click', async () => {
+    const ruta = boton.dataset.action === 'bot' ? "{% url 'cambiar_estado_conversacion' conversacion.pk 'bot' %}" : "{% url 'cambiar_estado_conversacion' conversacion.pk 'cerrada' %}";
+    boton.disabled = true;
+    try {
+      const datos = await window.api(ruta, {method:'POST'});
+      if(datos.entrega && datos.entrega !== 'enviado') { location.href = "{% url 'entregas' %}"; return; }
+      location.href = "{% url 'atencion_humana' %}";
+    } catch(fallo) { window.toast('error', 'No se pudo cambiar el estado', fallo.message); }
+    finally { boton.disabled = false; }
+  }));
+  {% endif %}
 })();
 </script>
 {% endblock %}

@@ -1,0 +1,14 @@
+{% extends 'core/base.html' %}
+{% block title %}Boti · Mi perfil{% endblock %}
+{% block page_title %}Mi perfil{% endblock %}
+{% block content %}
+<div class="page-wrap">
+<h1>Mi perfil</h1>
+<form class="card card-pad" method="post">
+  {% csrf_token %}
+  <p>Usuario: {{ request.user.username }}</p>
+  {% include 'core/campos.html' with formulario=formulario %}
+  <button class="btn btn-primary" type="submit">Guardar perfil</button>
+</form>
+</div>
+{% endblock %}

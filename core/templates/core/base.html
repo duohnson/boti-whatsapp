@@ -156,6 +156,12 @@ input,select,textarea{font:inherit;color:inherit}
   .toasts{left:1rem;right:1rem;bottom:5.5rem;max-width:none}
   .content{padding-bottom:.5rem}
 }
+[hidden]{display:none!important}
+.campo{display:block;margin:1rem 0}.campo label{display:block;font-weight:600;margin-bottom:.4rem}
+.campo input:not([type=checkbox]),.campo textarea,.campo select{width:100%;padding:.7rem;border:1px solid var(--border);border-radius:var(--r-sm);background:var(--surface-2);color:var(--text);font:inherit}
+.campo textarea{resize:vertical}.errorlist{color:var(--danger)}
+.opcion{padding:1rem 0;border-top:1px solid var(--border)}
+summary{cursor:pointer}table{width:100%;text-align:left;border-collapse:collapse}th,td{padding:.6rem;border-bottom:1px solid var(--border)}
 {% block extra_css %}{% endblock %}
 </style>
 </head>
@@ -180,14 +186,17 @@ input,select,textarea{font:inherit;color:inherit}
       <a class="nav-item {% if url_name == 'atencion_humana' %}active{% endif %}" href="{% url 'atencion_humana' %}">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
         Conversaciones
-        {% if pending_count %}<span class="badge">{{ pending_count }}</span>{% endif %}
+        {% if chats_pendientes %}<span class="badge">{{ chats_pendientes }}</span>{% endif %}
       </a>
       <a class="nav-item {% if url_name == 'configuracion_bot' %}active{% endif %}" href="{% url 'configuracion_bot' %}">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
         Configuración
       </a>
-      <a class="nav-item" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>Métricas</a>
-      <a class="nav-item" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>Ajustes</a>
+      <a class="nav-item" href="{% url 'metricas' %}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>Métricas</a>
+      <a class="nav-item" href="{% url 'configuracion_bot' %}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>Ajustes</a>
+      <a class="nav-item" href="{% url 'simulador' %}">Probar el bot</a>
+      <a class="nav-item" href="{% url 'entregas' %}">Entregas</a>
+      {% if propietario_activo %}<a class="nav-item" href="{% url 'equipo' %}">Equipo</a>{% endif %}
     </nav>
 
     <div class="side-foot">
@@ -217,21 +226,21 @@ input,select,textarea{font:inherit;color:inherit}
       <h1 class="page-title">{% block page_title %}{% endblock %}</h1>
 
       <div class="nav-right">
-        <span class="status-pill {% if whatsapp_connected %}connected{% else %}disconnected{% endif %}" id="statusPill">
+        <span class="status-pill {% if whatsapp_conectado %}connected{% else %}disconnected{% endif %}" id="statusPill">
           <i></i>
-          <span id="statusText">{% if whatsapp_connected %}Conectado{% else %}Desconectado{% endif %}</span>
+          <span id="statusText">{% if whatsapp_conectado %}Conectado{% else %}Desconectado{% endif %}</span>
         </span>
 
         <button class="icon-btn" id="notifBtn" aria-label="Notificaciones">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
-          {% if notifications %}<span class="dot-badge"></span>{% endif %}
+          {% if avisos %}<span class="dot-badge"></span>{% endif %}
         </button>
         <div class="dropdown" id="notifDropdown">
           <div style="padding:.5rem .75rem;font-weight:600;font-size:.85rem;border-bottom:1px solid var(--border)">Notificaciones</div>
-          {% for n in notifications %}
+          {% for n in avisos %}
             <div class="notif">
               <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span>
-              <div><p>{{ n.text }}</p><time>{{ n.time|timesince }}</time></div>
+              <div><p>{{ n.texto }}</p><time>{{ n.fecha|timesince }}</time></div>
             </div>
           {% empty %}
             <div style="padding:1.25rem .75rem;text-align:center;font-size:.82rem;color:var(--muted)">Sin notificaciones nuevas</div>
@@ -251,13 +260,18 @@ input,select,textarea{font:inherit;color:inherit}
               <span>{{ request.user.email }}</span>
             </div>
           </div>
-          <a class="dropdown-item" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Mi perfil</a>
-          <a class="dropdown-item" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>Configuración</a>
+          <a class="dropdown-item" href="{% url 'perfil' %}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Mi perfil</a>
+          <a class="dropdown-item" href="{% url 'configuracion_bot' %}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>Configuración</a>
           <button class="dropdown-item" id="themeToggle" type="button">
             <svg class="ico-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
             <svg class="ico-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
             <span id="themeLabel">Modo oscuro</span>
           </button>
+          {% if empresas_disponibles|length > 1 %}
+          <form method="post" action="{% url 'elegir_empresa' %}" style="padding:.75rem">
+            {% csrf_token %}<label for="empresa-elegida">Empresa activa</label>
+            <select id="empresa-elegida" name="empresa">{% for empresa in empresas_disponibles %}<option value="{{ empresa.pk }}" {% if empresa.pk == empresa_activa.pk %}selected{% endif %}>{{ empresa.propietario.username }} · {{ empresa.pk }}</option>{% endfor %}</select><button class="dropdown-item" type="submit">Cambiar empresa</button>
+          </form>{% endif %}
           <div class="dropdown-sep"></div>
           <form method="post" action="{% url 'salir' %}" style="margin:0">
             {% csrf_token %}
@@ -356,7 +370,9 @@ input,select,textarea{font:inherit;color:inherit}
   window.toast = function(type, title, msg){
     const t = document.createElement('div');
     t.className = 'toast ' + (ICONS[type] ? type : 'success');
-    t.innerHTML = '<span class="ic">'+(ICONS[type]||ICONS.success)+'</span><div><strong>'+title+'</strong>'+(msg?'<p>'+msg+'</p>':'')+'</div>';
+    t.innerHTML = '<span class="ic">'+(ICONS[type]||ICONS.success)+'</span><div><strong></strong><p></p></div>';
+    t.querySelector('strong').textContent = title;
+    t.querySelector('p').textContent = msg || '';
     document.getElementById('toasts').appendChild(t);
     setTimeout(() => { t.classList.add('out'); setTimeout(() => t.remove(), 300); }, 3400);
   };
@@ -372,8 +388,10 @@ input,select,textarea{font:inherit;color:inherit}
       'X-CSRFToken': window.CSRF_TOKEN,
       'X-Requested-With': 'XMLHttpRequest'
     }, opts.headers || {});
-    const res = await fetch(url, Object.assign({credentials:'same-origin'}, opts, {headers}));
-    const data = await res.json().catch(() => ({}));
+    const res = await fetch(url, Object.assign({credentials:'same-origin', cache:'no-store', signal:AbortSignal.timeout(25000)}, opts, {headers}));
+    if(res.redirected) throw new Error('La sesión venció. Vuelve a ingresar.');
+    if(!res.headers.get('Content-Type')?.includes('application/json')) throw new Error('El servidor no confirmó la operación. Recarga la página.');
+    const data = await res.json();
     if(!res.ok) throw new Error(data.error || 'Error de red');
     return data;
   };

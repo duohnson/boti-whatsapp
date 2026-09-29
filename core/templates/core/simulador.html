@@ -1,0 +1,19 @@
+{% extends 'core/base.html' %}
+{% block title %}Boti · Simulador{% endblock %}
+{% block page_title %}Simulador{% endblock %}
+{% block extra_css %}
+.simulacion{display:grid;grid-template-columns:minmax(0,1fr) 280px;gap:1.5rem;width:100%}.turno{padding:1rem 0;border-bottom:1px solid var(--border)}.respuesta-simulada{white-space:pre-wrap;background:var(--aqua-soft);padding:1rem;border-radius:var(--r);margin:.7rem 0}@media(max-width:800px){.simulacion{grid-template-columns:1fr}}
+{% endblock %}
+{% block content %}
+<div class="page-wrap">
+  <header class="page-head"><h1>Prueba tu bot</h1><p>Recorre el flujo sin conectar WhatsApp. No se envían mensajes reales ni se consume saldo de IA.</p></header>
+  <div class="simulacion">
+    <section class="card card-pad">
+      {% for turno in simulacion.historial %}<article class="turno"><strong>Tú: {{ turno.entrada }}</strong>{% for salida in turno.salidas %}<p class="respuesta-simulada">{{ salida }}</p>{% endfor %}<small>{{ turno.motivo }} Estado: {{ turno.estado }}.</small></article>{% empty %}{% include 'core/ilustraciones.html' with variante='chat' %}<p>Escribe el primer mensaje como si fueras un cliente.</p>{% endfor %}
+      <form method="post">{% csrf_token %}<label class="campo" for="texto-simulador">Mensaje de prueba<input id="texto-simulador" name="texto" maxlength="1000" required autocomplete="off" autofocus></label>{% if error %}<p role="alert">{{ error }}</p>{% endif %}<button class="btn btn-primary" type="submit">Probar mensaje</button></form>
+      <form method="post">{% csrf_token %}<button class="btn btn-ghost" name="reiniciar" value="1" type="submit">Reiniciar prueba</button></form>
+    </section>
+    <aside class="card card-pad"><h2>Revisión del flujo</h2>{% if avisos_flujo %}<ul>{% for aviso in avisos_flujo %}<li>{{ aviso }}</li>{% endfor %}</ul>{% else %}<p>No se encontraron problemas de conexión entre los pasos.</p>{% endif %}<p>Se usa la configuración guardada y la hora actual. Al llegar a una persona, reinicia la prueba para comenzar otra conversación.</p>{% if propietario_activo %}<a href="{% url 'configuracion_bot' %}">Volver al editor</a>{% endif %}</aside>
+  </div>
+</div>
+{% endblock %}

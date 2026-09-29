@@ -1,0 +1,25 @@
+{% extends 'core/base.html' %}
+{% block title %}Boti · Entregas{% endblock %}
+{% block page_title %}Entregas pendientes{% endblock %}
+{% block content %}
+<section class="page-wrap">
+  <header class="page-head"><h1>Entregas pendientes</h1><p>Las respuestas ya están generadas. Reintentar conserva su identificador y no vuelve a ejecutar la IA ni el flujo.</p></header>
+  {% for mensaje in pendientes %}
+  <article class="card card-pad">
+    <h2>{{ mensaje.sesion_usuario.telefono_cliente }} · {{ mensaje.get_estado_entrega_display }}</h2>
+    <small>{{ mensaje.fecha|date:'d/m/Y H:i' }} · {{ mensaje.get_rol_display }}</small>
+    <p style="white-space:pre-wrap;overflow-wrap:anywhere;margin:1rem 0">{{ mensaje.contenido }}</p>
+    <p>{{ mensaje.error_entrega }}</p>
+    <form method="post" action="{% url 'reintentar_entrega' mensaje.pk %}">{% csrf_token %}<button class="btn btn-primary" type="submit">Consultar o reintentar entrega</button></form>
+    {% if mensaje.estado_entrega == 'incierto' or mensaje.estado_entrega == 'enviando' %}
+    <details><summary>Ya verifiqué la entrega en WhatsApp</summary><p>Confirma solo si comprobaste que el texto y su PDF llegaron al chat. Esta acción no envía otro mensaje.</p><form method="post" action="{% url 'reintentar_entrega' mensaje.pk %}">{% csrf_token %}<label><input type="checkbox" required> Verifiqué que se entregó</label><button class="btn btn-ghost" name="confirmado" value="1" type="submit">Marcar como enviado</button></form></details>
+    {% endif %}
+  </article>
+  {% empty %}<section class="card card-pad">{% include 'core/ilustraciones.html' with variante='chat' %}<h2>Sin entregas pendientes</h2><p>Los nuevos fallos de entrega aparecerán aquí.</p></section>{% endfor %}
+  {% if pendientes.paginator.num_pages > 1 %}<nav aria-label="Páginas de entregas">
+    {% if pendientes.has_previous %}<a class="btn btn-ghost" href="?pagina={{ pendientes.previous_page_number }}">Anterior</a>{% endif %}
+    <span>{{ pendientes.number }} de {{ pendientes.paginator.num_pages }}</span>
+    {% if pendientes.has_next %}<a class="btn btn-ghost" href="?pagina={{ pendientes.next_page_number }}">Siguiente</a>{% endif %}
+  </nav>{% endif %}
+</section>
+{% endblock %}

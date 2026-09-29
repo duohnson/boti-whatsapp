@@ -1,4 +1,7 @@
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from django import forms
+from django.contrib.auth.forms import UserCreationForm
+from django.contrib.auth.models import User
 from .models import Empresa, NodoBot, OpcionNodo
 
 
@@ -6,14 +9,66 @@ class ConfiguracionEmpresaForm(forms.ModelForm):
     # aca el cliente deja su contexto y decide cuando entra la ia
     class Meta:
         model = Empresa
-        fields = ['prompt_sistema_ia', 'ia_desde_primer_mensaje']
+        fields = ['prompt_sistema_ia', 'ia_desde_primer_mensaje', 'bienvenida', 'despedida', 'tono', 'idioma', 'derivar_auto', 'palabras_clave', 'fuera_horario', 'horario_inicio', 'horario_fin', 'zona_horaria', 'mensaje_fuera_horario', 'reabrir_conversaciones', 'max_mensajes_ia', 'accion_limite_ia', 'mensaje_limite_ia']
         labels = {
+            'reabrir_conversaciones': 'Reabrir el chat cuando el cliente vuelva a escribir',
+            'max_mensajes_ia': 'Mensajes recientes que recuerda la IA (1 a 50)',
+            'accion_limite_ia': 'Al agotar el saldo de IA',
+            'mensaje_limite_ia': 'Aviso al agotar el saldo',
+            'bienvenida': 'Bienvenida adicional al iniciar un chat',
+            'despedida': 'Despedida al cerrar desde el panel',
+            'tono': 'Tono de la IA', 'idioma': 'Idioma de la IA',
+            'derivar_auto': 'Derivar a una persona por palabras clave',
+            'palabras_clave': 'Palabras o frases separadas por comas',
+            'fuera_horario': 'Responder con un aviso fuera del horario de atención',
+            'horario_inicio': 'Inicio de atención diaria', 'horario_fin': 'Fin de atención diaria',
+            'zona_horaria': 'Zona horaria', 'mensaje_fuera_horario': 'Aviso fuera de horario',
             'prompt_sistema_ia': 'Contexto e instrucciones para la IA',
             'ia_desde_primer_mensaje': 'Responder con IA desde el primer mensaje entrante',
         }
         widgets = {
-            'prompt_sistema_ia': forms.Textarea(attrs={'rows': 6}),
+            'prompt_sistema_ia': forms.Textarea(attrs={'rows': 4}),
+            'mensaje_limite_ia': forms.Textarea(attrs={'rows': 2}),
+            'bienvenida': forms.Textarea(attrs={'rows': 2}),
+            'despedida': forms.Textarea(attrs={'rows': 2}),
+            'mensaje_fuera_horario': forms.Textarea(attrs={'rows': 2}),
+            'derivar_auto': forms.CheckboxInput(attrs={'aria-label': 'Derivar a una persona automáticamente'}),
+            'fuera_horario': forms.CheckboxInput(attrs={'aria-label': 'Responder fuera de horario'}),
+            'horario_inicio': forms.TimeInput(attrs={'type': 'time'}, format='%H:%M'),
+            'horario_fin': forms.TimeInput(attrs={'type': 'time'}, format='%H:%M'),
         }
+
+
+    def clean_zona_horaria(self):
+        zona = self.cleaned_data['zona_horaria']
+        try:
+            ZoneInfo(zona)
+        except (ZoneInfoNotFoundError, ValueError):
+            raise forms.ValidationError('Usa una zona válida, por ejemplo America/Costa_Rica.')
+        return zona
+
+    def clean(self):
+        datos = super().clean()
+        if datos.get('fuera_horario') and datos.get('horario_inicio') == datos.get('horario_fin'):
+            self.add_error('horario_fin', 'El inicio y el fin deben ser distintos.')
+        if datos.get('derivar_auto') and not datos.get('palabras_clave', '').strip(' ,'):
+            self.add_error('palabras_clave', 'Agrega al menos una palabra o frase.')
+        return datos
+
+
+class RegistroForm(UserCreationForm):
+    first_name = forms.CharField(label='Nombre', max_length=150)
+    email = forms.EmailField(label='Correo electrónico')
+
+    class Meta(UserCreationForm.Meta):
+        fields = ['username', 'first_name', 'email', 'password1', 'password2']
+
+
+class PerfilForm(forms.ModelForm):
+    class Meta:
+        model = User
+        fields = ['first_name', 'last_name', 'email']
+        labels = {'first_name': 'Nombre', 'last_name': 'Apellidos', 'email': 'Correo electrónico'}
 
 
 class NodoBotForm(forms.ModelForm):

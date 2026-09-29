@@ -14,3 +14,5 @@ sesiones_whatsapp/
 media/
 /core/tests.py
 systemd_services.txt
+servicio_whatsapp/entregas/
+staticfiles/

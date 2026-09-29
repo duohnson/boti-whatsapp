@@ -1,5 +1,6 @@
 from django.contrib.auth.models import User
 from django.test import TestCase
+from django.forms.models import model_to_dict
 
 from core.forms import ConfiguracionEmpresaForm, NodoBotForm, OpcionNodoForm
 from core.models import Empresa, NodoBot
@@ -25,7 +26,9 @@ class PruebasFormulariosSimples(TestCase):
         )
 
     def test_uno_formulario_empresa_es_valido(self):
-        formulario = ConfiguracionEmpresaForm({'prompt_sistema_ia': 'responde corto'}, instance=self.empresa_uno)
+        datos = model_to_dict(self.empresa_uno)
+        datos['prompt_sistema_ia'] = 'responde corto'
+        formulario = ConfiguracionEmpresaForm(datos, instance=self.empresa_uno)
         self.assertTrue(formulario.is_valid())
 
     def test_dos_formulario_nodo_es_valido(self):

@@ -1,0 +1,45 @@
+<section class="page-wrap">
+  <h2>Pasos del bot</h2>
+  <details class="card card-pad" {% if formulario_nodo.is_bound %}open{% endif %}>
+    <summary>Crear un paso</summary>
+    <form method="post" action="{% url 'crear_nodo' %}">
+      {% csrf_token %}{% include 'core/campos.html' with formulario=formulario_nodo %}
+      <button class="btn btn-primary" type="submit">Crear paso</button>
+    </form>
+  </details>
+  {% for paso in pasos %}
+  <details class="card card-pad" {% if paso.abierto or paso.formulario.is_bound or paso.formulario_opcion.is_bound %}open{% endif %}>
+    <summary>{{ paso.objeto.nombre }} · {{ paso.objeto.get_tipo_nodo_display }}{% if paso.objeto.es_nodo_inicial %} · inicio{% endif %}</summary>
+    <form method="post" action="{% url 'guardar_nodo' paso.objeto.pk %}">
+      {% csrf_token %}{% include 'core/campos.html' with formulario=paso.formulario %}
+      <button class="btn btn-primary" type="submit">Guardar paso</button>
+    </form>
+    <form method="post" action="{% url 'duplicar_nodo' paso.objeto.pk %}">
+      {% csrf_token %}<button class="btn btn-ghost" type="submit">Duplicar paso</button>
+    </form>
+    <form method="post" action="{% url 'eliminar_nodo' paso.objeto.pk %}" data-confirmar="¿Eliminar el paso y sus conexiones?">
+      {% csrf_token %}<button class="btn btn-ghost" type="submit">Eliminar paso</button>
+    </form>
+    {% for opcion in paso.opciones %}
+    <details class="opcion" {% if opcion.formulario.is_bound %}open{% endif %}>
+      <summary>{{ opcion.objeto.entrada_esperada }} · {{ opcion.objeto.etiqueta }}</summary>
+      {% if opcion.objeto.archivo_pdf %}<p><a href="{% url 'archivo_opcion' opcion.objeto.pk %}">Descargar PDF actual</a></p>{% endif %}
+      <form method="post" enctype="multipart/form-data" action="{% url 'guardar_opcion' paso.objeto.pk opcion.objeto.pk %}">
+        {% csrf_token %}{% include 'core/campos.html' with formulario=opcion.formulario %}
+        <button class="btn btn-primary" type="submit">Guardar opción</button>
+      </form>
+      <form method="post" action="{% url 'eliminar_opcion' paso.objeto.pk opcion.objeto.pk %}" data-confirmar="¿Eliminar la opción?">
+        {% csrf_token %}<button class="btn btn-ghost" type="submit">Eliminar opción</button>
+      </form>
+    </details>
+    {% endfor %}
+    <details class="opcion" {% if paso.formulario_opcion.is_bound %}open{% endif %}>
+      <summary>Agregar opción</summary>
+      <form method="post" enctype="multipart/form-data" action="{% url 'crear_opcion' paso.objeto.pk %}">
+        {% csrf_token %}{% include 'core/campos.html' with formulario=paso.formulario_opcion %}
+        <button class="btn btn-primary" type="submit">Crear opción</button>
+      </form>
+    </details>
+  </details>
+  {% empty %}<p>Crea el primer paso y márcalo como bienvenida para iniciar el flujo.</p>{% endfor %}
+</section>
