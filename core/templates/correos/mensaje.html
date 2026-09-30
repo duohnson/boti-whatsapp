@@ -1,0 +1,9 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{{ titulo }}</title></head>
+<body style="margin:0;padding:24px 12px;background:#f2f8f7;font-family:Arial,sans-serif;color:#132e32">
+<table role="presentation" style="width:100%;max-width:560px;margin:auto;border-spacing:0;background:white;border:1px solid #dfebe7;border-radius:20px;overflow:hidden">
+<tr><td style="padding:26px 32px;background:#123d36;color:#ffffff;font-size:24px;font-weight:bold">boti<span style="color:#80dfbb">.</span></td></tr>
+<tr><td style="padding:32px"><p style="font-size:11px;letter-spacing:2px;color:#16836c;text-transform:uppercase">tu cuenta, contigo</p><h1 style="font-size:25px;line-height:1.3;margin:16px 0">{{ titulo }}</h1><p style="font-size:16px;line-height:1.7;color:#51686c">{{ mensaje }}</p>
+{% if codigo %}<p style="margin:28px 0;padding:22px;text-align:center;font-family:monospace;font-size:34px;font-weight:bold;letter-spacing:7px;background:#eaf8f1;border-radius:12px;color:#12634e">{{ codigo }}</p><p style="font-size:13px;line-height:1.7;color:#51686c">Vence en 10 minutos y solo puede usarse una vez. No compartas este código. Boti nunca te lo pedirá por WhatsApp.</p>{% else %}<p style="margin:26px 0"><a href="{{ url }}" style="display:inline-block;padding:14px 22px;background:#16836c;border-radius:10px;color:white;text-decoration:none;font-weight:bold">Ver mi plan</a></p>{% endif %}
+{% if detalle %}<p style="font-size:14px;line-height:1.7;color:#51686c">{{ detalle }}</p>{% endif %}
+</td></tr><tr><td style="padding:20px 32px;border-top:1px solid #e4eeeb;font-size:12px;line-height:1.7;color:#6d8083">{% if codigo %}Si no solicitaste esta operación, ignora el correo. No se completará sin tu código.<br>{% endif %}¿Necesitas ayuda? <a href="https://wa.me/5351652038" style="color:#16836c">Contacta a Boti</a>.</td></tr>
+</table></body></html>

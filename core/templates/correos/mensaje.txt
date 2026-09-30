@@ -1,0 +1,12 @@
+{{ titulo }} · Boti
+
+{{ mensaje }}
+{% if codigo %}
+Tu codigo: {{ codigo }}
+Vence en 10 minutos. No lo compartas. Si no solicitaste esta operacion, ignora este correo.
+{% else %}
+Ver mi plan: {{ url }}
+{% endif %}
+{{ detalle }}
+
+Ayuda: https://wa.me/5351652038

@@ -22,36 +22,17 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_GET, require_POST
 from django.views.decorators.csrf import csrf_exempt
-from .forms import ConfiguracionEmpresaForm, NodoBotForm, OpcionNodoForm, RegistroForm, PerfilForm
-from .models import AgenteEmpresa, Empresa, SesionWhatsApp, CicloFacturacion, NodoBot, OpcionNodo, SesionUsuario, HistorialChat
+from .forms import ConfiguracionEmpresaForm, NodoBotForm, OpcionNodoForm, RegistroForm, PerfilForm, DatosPerfilForm
+from .models import PerfilUsuario, AgenteEmpresa, Empresa, SesionWhatsApp, CicloFacturacion, NodoBot, OpcionNodo, SesionUsuario, HistorialChat
 from .conversaciones import procesar_mensaje_whatsapp
 from .utils import solicitar_whatsapp, enviar_mensaje_whatsapp
 from .cuentas import empresa_actual, empresas_usuario, solo_propietario
 from .flujos import validar_flujo, resolver_turno
 from .entregas import entregar_mensaje
+from .planes import actualizar_cupo, puede_responder, contar_respuesta
 
 
 registro_errores = logging.getLogger(__name__)
-
-class IngresarView(LoginView):
-    template_name = 'registration/login.html'
-
-    def form_valid(self, form):
-        respuesta = super().form_valid(form)
-        self.request.session.set_expiry(1209600 if self.request.POST.get('recordarme') == '1' else 0)
-        return respuesta
-
-
-def registro(request):
-    # al registrarse creo su empresa y lo mando a su panel
-    formulario = RegistroForm(request.POST if request.method == 'POST' else None)
-    if request.method == 'POST' and formulario.is_valid():
-        usuario = formulario.save()
-        # cada cuenta arranca con su propia empresa
-        Empresa.objects.create(propietario=usuario)
-        login(request, usuario)
-        return redirect('dashboard')
-    return render(request, 'registration/registro.html', {'formulario': formulario})
 
 def solicitud_interna_autorizada(request):
     # node usa este secreto cuando devuelve estados y mensajes
@@ -223,7 +204,8 @@ def configuracion_bot(request):
     empresa = obtener_empresa(request)
     formulario = ConfiguracionEmpresaForm(request.POST if request.method == 'POST' else None, instance=empresa)
     if request.method == 'POST' and formulario.is_valid():
-        formulario.save()
+        configuracion = formulario.save(commit=False)
+        configuracion.save(update_fields=list(formulario.fields))
         messages.success(request, 'Se guardó la configuración.')
         return redirect('configuracion_bot')
 
@@ -231,6 +213,7 @@ def configuracion_bot(request):
 
 
 def mostrar_configuracion(request, empresa, formulario=None, error=None):
+    actualizar_cupo(empresa)
     formulario = formulario if formulario is not None else ConfiguracionEmpresaForm(instance=empresa)
     error = error or {}
     nodos = NodoBot.objects.filter(empresa=empresa).prefetch_related('opciones_salida__nodo_siguiente').order_by('id')
@@ -354,7 +337,12 @@ def responder_agente(request, sesion_id):
     except ValueError:
         return JsonResponse({'error': 'Recarga el formulario para obtener un identificador de envío.'}, status=400)
     with transaction.atomic():
-        chat = get_object_or_404(SesionUsuario.objects.select_for_update(), pk=sesion_id, empresa=obtener_empresa(request), estado='humano')
+        empresa = Empresa.objects.select_for_update().get(pk=obtener_empresa(request).pk)
+        actualizar_cupo(empresa)
+        existente = HistorialChat.objects.filter(id_envio=id_envio, sesion_usuario__empresa=empresa).exists()
+        if not existente and not puede_responder(empresa):
+            return JsonResponse({'error': 'Alcanzaste las 50 respuestas gratuitas. Revisa tu plan para continuar.'}, status=403)
+        chat = get_object_or_404(SesionUsuario.objects.select_for_update(), pk=sesion_id, empresa=empresa, estado='humano')
         if chat.asignado_a_id and chat.asignado_a_id != request.user.pk:
             return JsonResponse({'error': 'Otro agente está atendiendo esta conversación.'}, status=409)
         chat.asignado_a = request.user
@@ -362,6 +350,9 @@ def responder_agente(request, sesion_id):
         mensaje, creado = HistorialChat.objects.get_or_create(id_envio=id_envio, defaults={
             'sesion_usuario':chat, 'rol':'agent', 'contenido':texto, 'estado_entrega':'generado',
         })
+        if creado:
+            contar_respuesta(empresa)
+            empresa.save()
         if mensaje.sesion_usuario_id != chat.pk or mensaje.contenido != texto or mensaje.rol != 'agent':
             return JsonResponse({'error':'El identificador corresponde a otro mensaje.'}, status=409)
     estado = entregar_mensaje(mensaje.pk, enviar=enviar_mensaje_whatsapp)
@@ -394,10 +385,14 @@ def cambiar_estado_conversacion(request, sesion_id, estado):
     empresa = obtener_empresa(request)
     pendiente = None
     with transaction.atomic():
+        empresa = Empresa.objects.select_for_update().get(pk=empresa.pk)
+        actualizar_cupo(empresa)
         chat = get_object_or_404(SesionUsuario.objects.select_for_update(), pk=sesion_id, empresa=empresa)
         if chat.asignado_a_id not in [None, request.user.pk] and empresa.propietario_id != request.user.pk:
             return JsonResponse({'error':'La conversación está asignada a otro agente.'}, status=409)
-        if estado == 'cerrada' and chat.estado != 'cerrada' and empresa.despedida:
+        if estado == 'cerrada' and chat.estado != 'cerrada' and empresa.despedida and puede_responder(empresa):
+            contar_respuesta(empresa)
+            empresa.save()
             pendiente = HistorialChat.objects.create(sesion_usuario=chat, rol='agent', contenido=empresa.despedida, estado_entrega='generado')
         chat.estado, chat.activo = estado, estado != 'cerrada'
         chat.asignado_a = None
@@ -431,6 +426,7 @@ def archivo_opcion_interno(request, identificador, opcion_id):
 @login_required
 def metricas(request):
     empresa = obtener_empresa(request)
+    actualizar_cupo(empresa)
     desde = timezone.localdate() - timedelta(days=29)
     historial = HistorialChat.objects.filter(sesion_usuario__empresa=empresa)
     dias = historial.filter(fecha__date__gte=desde).annotate(dia=TruncDate('fecha')).values('dia').annotate(total=Count('id')).order_by('-dia')
@@ -445,12 +441,16 @@ def metricas(request):
 
 @login_required
 def perfil(request):
+    datos, _ = PerfilUsuario.objects.get_or_create(usuario=request.user)
     formulario = PerfilForm(request.POST if request.method == 'POST' else None, instance=request.user)
-    if request.method == 'POST' and formulario.is_valid():
-        formulario.save()
+    adicionales = DatosPerfilForm(request.POST if request.method == 'POST' else None, instance=datos)
+    if request.method == 'POST' and formulario.is_valid() and adicionales.is_valid():
+        with transaction.atomic():
+            formulario.save(commit=False).save(update_fields=list(formulario.fields))
+            adicionales.save(commit=False).save(update_fields=list(adicionales.fields))
         messages.success(request, 'Se guardó tu perfil.')
         return redirect('perfil')
-    return render(request, 'core/perfil.html', {'formulario': formulario})
+    return render(request, 'core/perfil.html', {'formulario': formulario, 'adicionales': adicionales, 'perfil': datos})
 
 
 @login_required
@@ -482,6 +482,7 @@ def diagnostico_whatsapp(request):
 @login_required
 def simulador(request):
     empresa = obtener_empresa(request)
+    actualizar_cupo(empresa)
     clave = f'simulador_{empresa.pk}'
     estado = request.session.get(clave, {'nodo':None, 'estado':'bot', 'nueva':True, 'historial':[]})
     error = ''
@@ -497,7 +498,7 @@ def simulador(request):
             resultado = resolver_turno(empresa, nodo, estado['estado'], estado['nueva'], texto, timezone.now())
             salidas = [salida['texto'] + ('\n[PDF adjunto]' if salida['opcion'] and salida['opcion'].archivo_pdf else '') for salida in resultado['salidas']]
             if resultado['ia']:
-                if empresa.respuestas_ia_utilizadas >= empresa.limite_respuestas_ia:
+                if empresa.plan != 'corporativo' or empresa.respuestas_ia_utilizadas >= empresa.limite_respuestas_ia:
                     salidas.append(empresa.mensaje_limite_ia)
                     if empresa.accion_limite_ia == 'humano':
                         resultado['estado'] = 'humano'

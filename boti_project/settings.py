@@ -154,3 +154,27 @@ CSRF_COOKIE_SECURE = not DEBUG
 SECURE_HSTS_SECONDS = 31536000 if not DEBUG else 0
 SECURE_HSTS_INCLUDE_SUBDOMAINS = not DEBUG
 SECURE_HSTS_PRELOAD = not DEBUG
+
+# paypal usa sandbox hasta configurar el entorno de produccion
+PAYPAL_ENTORNO = os.environ.get('PAYPAL_ENTORNO', 'sandbox')
+PAYPAL_CLIENT_ID = os.environ.get('PAYPAL_CLIENT_ID', '')
+PAYPAL_CLIENT_SECRET = os.environ.get('PAYPAL_CLIENT_SECRET', '')
+PAYPAL_WEBHOOK_ID = os.environ.get('PAYPAL_WEBHOOK_ID', '')
+BOTI_URL_PUBLICA = os.environ.get('BOTI_URL_PUBLICA', 'http://127.0.0.1:7213').rstrip('/')
+PAYPAL_PLANES = {
+    f'{plan}_{periodo}': os.environ.get(f'PAYPAL_{plan.upper()}_{periodo.upper()}', '')
+    for plan in ['premium', 'corporativo']
+    for periodo in ['semana', 'quincena', 'mes', 'trimestre', 'semestre']
+}
+PAYPAL_PRODUCTO_ID = os.environ.get('PAYPAL_PRODUCTO_ID', '')
+
+# el acceso por codigo requiere smtp configurado
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = os.environ.get('SMTP_HOST', '')
+EMAIL_PORT = int(os.environ.get('SMTP_PORT', '587'))
+EMAIL_HOST_USER = os.environ.get('SMTP_USUARIO', '')
+EMAIL_HOST_PASSWORD = os.environ.get('SMTP_CLAVE', '')
+EMAIL_USE_TLS = os.environ.get('SMTP_TLS', '1') == '1'
+EMAIL_USE_SSL = os.environ.get('SMTP_SSL', '0') == '1'
+EMAIL_TIMEOUT = 15
+DEFAULT_FROM_EMAIL = os.environ.get('SMTP_REMITENTE', 'Boti <no-reply@boti.duohnson.com>')

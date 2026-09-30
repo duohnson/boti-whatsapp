@@ -18,13 +18,18 @@ from django.contrib import admin
 from django.contrib.auth.views import LogoutView
 from django.urls import path, include
 from django.views.generic import RedirectView
-from core import views
+from core import views, vistas_seguridad
 
 urlpatterns = [
+    path('admin/login/', RedirectView.as_view(url='/cuentas/ingresar/?next=/admin/', permanent=False)),
     path('admin/', admin.site.urls),
     # acceso y registro de las cuentas del servicio
-    path('cuentas/registro/', views.registro, name='registro'),
-    path('cuentas/ingresar/', views.IngresarView.as_view(), name='ingresar'),
+    path('cuentas/registro/', vistas_seguridad.registro, name='registro'),
+    path('cuentas/ingresar/', vistas_seguridad.ingresar, name='ingresar'),
+    path('cuentas/verificar/', vistas_seguridad.verificar, name='verificar_codigo'),
+    path('cuentas/reenviar/', vistas_seguridad.reenviar, name='reenviar_codigo'),
+    path('cuentas/correo/', vistas_seguridad.cambiar_correo, name='cambiar_correo'),
+    path('cuentas/clave/', vistas_seguridad.cambiar_clave, name='cambiar_clave'),
     path('cuentas/salir/', LogoutView.as_view(), name='salir'),
     path('api/', include('core.urls')),
     path('', RedirectView.as_view(url='/api/dashboard/', permanent=False)),

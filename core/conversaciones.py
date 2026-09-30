@@ -7,6 +7,8 @@ from .ia import ErrorProveedorIA, generar_respuesta_ia
 from .entregas import entregar_mensaje
 from .flujos import resolver_turno, mensaje_con_opciones, normalizar_entrada, fuera_del_horario, pide_atencion_humana
 
+from .planes import actualizar_cupo, puede_responder, contar_respuesta
+
 registro = logging.getLogger(__name__)
 
 
@@ -36,6 +38,10 @@ def preparar_turno(identificador, telefono, texto, id_mensaje, destino):
     if entrada:
         return list(entrada.respuestas.exclude(estado_entrega='enviado').values_list('pk', flat=True))
     entrada = HistorialChat.objects.create(sesion_usuario=sesion, rol='user', contenido=texto, identificador_mensaje=id_mensaje or '')
+    actualizar_cupo(empresa)
+    empresa.save()
+    if not puede_responder(empresa):
+        return []
     if destino:
         sesion.destino_chat = destino
     resultado = resolver_turno(empresa, sesion.nodo_actual, sesion.estado, nueva, texto, timezone.now())
@@ -44,9 +50,9 @@ def preparar_turno(identificador, telefono, texto, id_mensaje, destino):
     sesion.activo = sesion.estado != 'cerrada'
     if sesion.estado != 'humano':
         sesion.asignado_a = None
-    if resultado['ia']:
+    if resultado['ia'] and (empresa.plan != 'gratis' or len(resultado['salidas']) < 50 - empresa.respuestas_gratis):
         opcion = resultado.get('opcion')
-        if empresa.respuestas_ia_utilizadas >= empresa.limite_respuestas_ia:
+        if empresa.plan != 'corporativo' or empresa.respuestas_ia_utilizadas >= empresa.limite_respuestas_ia:
             respuesta = empresa.mensaje_limite_ia
             if empresa.accion_limite_ia == 'humano':
                 sesion.estado = 'humano'
@@ -69,6 +75,9 @@ def preparar_turno(identificador, telefono, texto, id_mensaje, destino):
     whatsapp.save(update_fields=['ultima_actividad'])
     pendientes = []
     for salida in resultado['salidas']:
+        if not puede_responder(empresa):
+            break
+        contar_respuesta(empresa)
         opcion = salida['opcion']
         mensaje = HistorialChat.objects.create(
             sesion_usuario=sesion, rol='assistant', contenido=salida['texto'], respuesta_a=entrada,
@@ -76,6 +85,7 @@ def preparar_turno(identificador, telefono, texto, id_mensaje, destino):
             adjunto_entrega=opcion.archivo_pdf.name if opcion and opcion.archivo_pdf else '',
         )
         pendientes.append(mensaje.pk)
+    empresa.save()
     return pendientes
 
 

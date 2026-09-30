@@ -9,7 +9,7 @@
   <p>Mensajes registrados hoy: <strong>{{ mensajes_hoy }}</strong></p>
   <p>Conversaciones: <strong>{{ conversaciones }}</strong></p>
   <p>Esperando atención humana: <strong>{{ pendientes }}</strong></p>
-  <p>Respuestas de IA utilizadas: <strong>{{ empresa.respuestas_ia_utilizadas }} / {{ empresa.limite_respuestas_ia }}</strong></p>
+  {% if empresa.plan == 'corporativo' %}<p>Respuestas de IA utilizadas: <strong>{{ empresa.respuestas_ia_utilizadas }} / {{ empresa.limite_respuestas_ia }}</strong></p>{% else %}<p>Tu plan no incluye IA. Está disponible en Corporativo con 1000 respuestas al mes.</p>{% endif %}
   <p>Última conexión: <strong>{{ sesion.fecha_conexion|date:'d/m/Y H:i'|default:'Sin conexión registrada' }}</strong></p>
   {% if sesion.estado == 'conectado' %}<p>Tiempo desde la conexión: {{ sesion.fecha_conexion|timesince }}</p>{% endif %}
 </section>

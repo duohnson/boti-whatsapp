@@ -3,7 +3,6 @@ venv
 .venv
 ./venv
 .env
-.env.example
 *.env
 *.pyc
 *.sqlite3

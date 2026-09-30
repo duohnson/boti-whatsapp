@@ -52,7 +52,7 @@ def resolver_turno(empresa, nodo_actual, estado, nueva, texto, ahora):
     inicial = nodos.filter(es_nodo_inicial=True).first() or nodos.order_by('pk').first()
     opcion = None
     if nueva or not nodo_actual or nodo_actual.empresa_id != empresa.pk:
-        if empresa.ia_desde_primer_mensaje:
+        if empresa.ia_desde_primer_mensaje and empresa.plan == 'corporativo':
             resultado.update(ia=True, nodo=None, motivo='IA desde el primer mensaje.')
             return resultado
         nodo = inicial
@@ -71,6 +71,9 @@ def resolver_turno(empresa, nodo_actual, estado, nueva, texto, ahora):
         return resultado
     resultado.update(nodo=nodo, motivo=f'Paso: {nodo.nombre} ({nodo.get_tipo_nodo_display()}).')
     if nodo.tipo_nodo == 'AI_AGENT':
+        if empresa.plan != 'corporativo':
+            resultado['estado'] = 'humano'
+            return aviso('Una persona continuará esta conversación.', 'La IA requiere el plan Corporativo.')
         resultado.update(ia=True, opcion=opcion)
     else:
         resultado['salidas'].append({'texto': mensaje_con_opciones(nodo), 'opcion': opcion})
@@ -86,6 +89,8 @@ def resolver_turno(empresa, nodo_actual, estado, nueva, texto, ahora):
 def validar_flujo(empresa):
     nodos = list(NodoBot.objects.filter(empresa=empresa).prefetch_related('opciones_salida'))
     avisos = []
+    if empresa.plan != 'corporativo' and (empresa.ia_desde_primer_mensaje or any(nodo.tipo_nodo == 'AI_AGENT' for nodo in nodos)):
+        avisos.append('La IA solo está incluida en Corporativo. Se usa el flujo y los pasos de IA derivan a atención humana.')
     iniciales = [nodo for nodo in nodos if nodo.es_nodo_inicial]
     if not iniciales:
         avisos.append('Falta marcar un paso inicial. El bot usa el primer paso como respaldo.')

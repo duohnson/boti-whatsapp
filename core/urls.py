@@ -1,7 +1,13 @@
 from django.urls import path
-from . import views
+from . import views, vistas_planes
 
 urlpatterns = [
+    path('planes/', vistas_planes.planes, name='planes'),
+    path('planes/suscribir/', vistas_planes.suscribir, name='suscribir_plan'),
+    path('planes/retorno/', vistas_planes.retorno, name='retorno_paypal'),
+    path('planes/<int:identificador>/consultar/', vistas_planes.consultar, name='consultar_plan'),
+    path('planes/<int:identificador>/cancelar/', vistas_planes.cancelar, name='cancelar_plan'),
+    path('paypal/webhook/', vistas_planes.webhook, name='webhook_paypal'),
     path('equipo/', views.equipo, name='equipo'),
     path('empresa/elegir/', views.elegir_empresa, name='elegir_empresa'),
     path('entregas/', views.entregas, name='entregas'),

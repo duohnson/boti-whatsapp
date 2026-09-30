@@ -162,6 +162,7 @@ input,select,textarea{font:inherit;color:inherit}
 .campo textarea{resize:vertical}.errorlist{color:var(--danger)}
 .opcion{padding:1rem 0;border-top:1px solid var(--border)}
 summary{cursor:pointer}table{width:100%;text-align:left;border-collapse:collapse}th,td{padding:.6rem;border-bottom:1px solid var(--border)}
+@media(prefers-reduced-motion:no-preference){.btn{transition:transform .16s ease,box-shadow .16s ease}.btn:active{transform:translateY(1px)}.nav-item{transition:background .18s ease,color .18s ease}}
 {% block extra_css %}{% endblock %}
 </style>
 </head>
@@ -194,6 +195,8 @@ summary{cursor:pointer}table{width:100%;text-align:left;border-collapse:collapse
       </a>
       <a class="nav-item" href="{% url 'metricas' %}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>Métricas</a>
       <a class="nav-item" href="{% url 'configuracion_bot' %}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>Ajustes</a>
+      <a class="nav-item" href="{% url 'planes' %}">Planes y consumo</a>
+      <a class="nav-item" href="https://wa.me/5351652038" target="_blank" rel="noopener">Ayuda por WhatsApp</a>
       <a class="nav-item" href="{% url 'simulador' %}">Probar el bot</a>
       <a class="nav-item" href="{% url 'entregas' %}">Entregas</a>
       {% if propietario_activo %}<a class="nav-item" href="{% url 'equipo' %}">Equipo</a>{% endif %}

@@ -1,4 +1,5 @@
 from .models import SesionUsuario, SesionWhatsApp
+from .planes import resumen_plan
 from .cuentas import empresa_actual, empresas_usuario
 
 
@@ -9,6 +10,7 @@ def avisos_cuenta(request):
     pendientes = SesionUsuario.objects.filter(empresa=empresa, estado='humano') if empresa else SesionUsuario.objects.none()
     return {
         'empresa_activa': empresa,
+        'consumo_plan': resumen_plan(empresa) if empresa else None,
         'propietario_activo': bool(empresa and empresa.propietario_id == request.user.pk),
         'empresas_disponibles': empresas_usuario(request.user).select_related('propietario'),
         'chats_pendientes': pendientes.count(),

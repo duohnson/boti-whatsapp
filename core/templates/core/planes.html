@@ -1,0 +1,75 @@
+{% extends 'core/base.html' %}
+{% block title %}Boti · Planes{% endblock %}
+{% block page_title %}Planes y consumo{% endblock %}
+{% block extra_css %}
+.planes-cabecera{max-width:720px;margin-bottom:28px}.planes-cabecera h1{font-size:clamp(28px,4vw,42px);letter-spacing:-1.2px;margin:10px 0}.planes-cabecera p{color:var(--muted);line-height:1.7}.planes-etiqueta{font-size:12px;text-transform:uppercase;letter-spacing:2px;color:var(--wa-dark)}
+.planes-lista{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px;margin:24px 0}.plan-tarjeta{position:relative;padding:28px;display:flex;flex-direction:column;gap:16px}.plan-tarjeta h2,.plan-tarjeta p{margin:0}.plan-tarjeta ul{padding-left:20px;line-height:2}.plan-tarjeta form{margin-top:auto;display:grid;gap:12px}.plan-tarjeta select{width:100%;padding:12px;border:1px solid var(--border);border-radius:12px;background:var(--surface);color:var(--text)}.plan-precio{font-size:38px;font-weight:800;letter-spacing:-1px}.plan-precio small{font-size:13px;font-weight:500;letter-spacing:0}.plan-destacado{border:1px solid #19b99a;box-shadow:0 10px 35px #19b99a12}.plan-sello{align-self:flex-start;padding:5px 10px;border-radius:20px;background:#19b99a16;color:#138a72;font-size:12px}.plan-acuerdo{display:flex;gap:8px;align-items:flex-start;font-size:12px;line-height:1.6}.plan-acuerdo input{margin-top:4px;flex:none}.plan-consumo{display:grid;gap:12px}.plan-consumo progress{width:100%;height:8px;accent-color:#19b99a;border:0;border-radius:8px;overflow:hidden}.plan-consumo progress::-webkit-progress-bar{background:var(--surface-3)}.plan-consumo progress::-webkit-progress-value{background:#19b99a}.plan-tarjeta button:disabled{opacity:.5;cursor:not-allowed}.plan-acciones{display:flex;flex-wrap:wrap;gap:12px;align-items:center}.plan-historial{overflow:auto}.plan-historial table{width:100%;text-align:left;border-collapse:collapse}.plan-historial td,.plan-historial th{padding:12px;border-bottom:1px solid var(--border)}.plan-ayuda{margin:24px 0;padding:24px;line-height:1.7}.plan-nota{font-size:13px;color:var(--muted)}
+[data-theme="dark"] .plan-sello,[data-theme="dark"] .planes-etiqueta{color:#74dec9}
+@media(max-width:1000px){.planes-lista{grid-template-columns:1fr}.plan-tarjeta{padding:24px}}
+@media(prefers-reduced-motion:no-preference){.plan-tarjeta{animation:entrada-plan .4s ease both;transition:transform .2s ease,box-shadow .2s ease}.plan-tarjeta:nth-child(2){animation-delay:60ms}.plan-tarjeta:nth-child(3){animation-delay:120ms}.plan-tarjeta:hover{transform:translateY(-3px);box-shadow:0 14px 32px #1233260d}@keyframes entrada-plan{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:none}}}
+{% endblock %}
+{% block content %}
+<section class="page-wrap">
+  <header class="planes-cabecera"><span class="planes-etiqueta">Mas conversaciones, a tu ritmo</span><h1>Un plan para cada etapa.</h1><p>Empieza gratis y amplía la atención cuando lo necesites. Tus pasos y conversaciones permanecen contigo.</p></header>
+  <section class="card card-pad plan-consumo" aria-label="Consumo actual">
+    <h2>Tu plan: {{ resumen.nombre }}</h2>
+    {% if resumen.limite %}<p><strong>{{ resumen.usados }} / {{ resumen.limite }}</strong> {% if resumen.gratis %}respuestas gratuitas{% else %}respuestas de IA este mes{% endif %} · {{ resumen.restantes }} disponibles</p>
+    <progress value="{{ resumen.usados }}" max="{{ resumen.limite }}" aria-label="Respuestas utilizadas"></progress>
+    {% else %}<p>Nodos, flujos y respuestas de flujo ilimitados. Sin IA.</p>{% endif %}
+    <p class="plan-nota">Respuestas totales desde la actualización: {{ empresa.respuestas_totales }}. Las respuestas pendientes de entrega también consumen cupo; los reintentos no consumen otra respuesta.</p>
+    {% if resumen.bloqueado %}<p>Tu cupo gratuito vuelve el {{ empresa.bloqueado_hasta|date:'d/m/Y H:i' }}. Puedes contratar un plan para continuar antes.</p>{% endif %}
+    {% if not resumen.gratis %}<p>Acceso pagado hasta {{ empresa.plan_hasta|date:'d/m/Y H:i' }}.{% if empresa.plan == 'corporativo' %} La cuota de IA se renueva el {{ empresa.ciclo_ia_hasta|date:'d/m/Y H:i' }}.{% endif %}</p>{% endif %}
+    {% if suscripcion %}<p>Suscripción PayPal: {{ suscripcion.estado }}.</p>
+      {% if propietario_activo %}<section class="plan-acciones" aria-label="Gestionar suscripción">
+        {% if suscripcion.estado == 'pendiente' and suscripcion.aprobacion %}<a class="btn btn-primary" href="{{ suscripcion.aprobacion }}">Continuar en PayPal</a>{% endif %}
+        <form method="post" action="{% url 'consultar_plan' suscripcion.pk %}">{% csrf_token %}<button class="btn btn-ghost">Consultar pago</button></form>
+        {% if suscripcion.estado == 'activo' or suscripcion.estado == 'suspendido' or suscripcion.estado == 'pendiente' %}<form method="post" action="{% url 'cancelar_plan' suscripcion.pk %}" data-confirmar="¿Cancelar la renovación automática? Conservas el acceso hasta terminar el periodo pagado.">{% csrf_token %}<button class="btn btn-ghost">Cancelar renovación</button></form>{% endif %}
+      </section>{% endif %}
+    {% endif %}
+  </section>
+  <section class="planes-lista" aria-label="Comparar planes">
+    {% for tarjeta in tarjetas %}
+    <article class="card plan-tarjeta {% if tarjeta.clave == 'premium' %}plan-destacado{% endif %}">
+      <span class="plan-sello">{% if tarjeta.clave == 'gratis' %}Para comenzar{% elif tarjeta.clave == 'premium' %}Para crecer{% else %}Para tu equipo{% endif %}</span>
+      <h2>{{ tarjeta.nombre }}</h2><p class="plan-precio">${{ tarjeta.precio }} <small>USD{% if tarjeta.precio %} / semana{% endif %}</small></p>
+      <ul>{% if tarjeta.clave == 'gratis' %}<li>50 respuestas en total por cupo</li><li>Cuenta flujo y atención humana, sin IA</li><li>Nuevo cupo un mes después de agotarlo</li><li>Sin tarjeta ni cobros</li>{% else %}<li>Nodos y flujos ilimitados</li>{% if tarjeta.clave == 'corporativo' %}<li>{{ tarjeta.limite }} respuestas de IA al mes</li>{% else %}<li>Sin IA</li>{% endif %}<li>Respuestas de flujo sin límite</li><li>Renovación automática cancelable</li>{% endif %}</ul>
+      {% if tarjeta.precio %}
+      {% if propietario_activo %}<form method="post" action="{% url 'suscribir_plan' %}">{% csrf_token %}<input type="hidden" name="plan" value="{{ tarjeta.clave }}">
+        <label for="periodo-{{ tarjeta.clave }}">Periodo de cobro</label><select id="periodo-{{ tarjeta.clave }}" name="periodo">{% for periodo in tarjeta.periodos %}<option value="{{ periodo.clave }}">{{ periodo.nombre }} · ${{ periodo.importe }} USD por cobro</option>{% endfor %}</select>
+        <label for="mercado-{{ tarjeta.clave }}">Contratación</label><select id="mercado-{{ tarjeta.clave }}" name="mercado"><option value="internacional">Internacional · PayPal</option><option value="cuba">Cuba · WhatsApp</option></select>
+        <label class="plan-acuerdo"><input type="checkbox" name="acepto" value="1" required> Acepto el cobro automático del importe y periodo seleccionados hasta cancelar. Puedo cancelar desde este panel o desde PayPal.</label>
+        <button class="btn btn-primary" {% if not paypal_disponible %}disabled{% endif %}>Suscribirme con PayPal</button>
+        {% if not paypal_disponible %}<p class="plan-nota">PayPal estará disponible pronto. Puedes consultar por WhatsApp.</p>{% endif %}
+      </form>{% else %}<p class="plan-nota">El propietario administra la contratación.</p>{% endif %}
+      {% else %}<p class="plan-nota">Es el plan predeterminado al crear tu cuenta. Sin límites añadidos de nodos.</p>{% endif %}
+    </article>
+    {% endfor %}
+  </section>
+  <aside class="card plan-ayuda"><h2>¿Contratas desde Cuba?</h2><p>La contratación cubana se coordina directamente con Boti por WhatsApp. Los pagos internacionales se realizan mediante PayPal.</p><a class="btn btn-primary" href="https://wa.me/5351652038?text=Hola%2C%20quiero%20contratar%20Boti%20desde%20Cuba" target="_blank" rel="noopener">Contratar desde Cuba</a> <a class="btn btn-ghost" href="https://wa.me/5351652038" target="_blank" rel="noopener">Servicio al cliente</a><p class="plan-nota">+53 5 1652038</p></aside>
+  <p class="plan-nota">Todos los precios están en USD. Quincena significa 15 días; los meses son calendario. Pagar varios meses no aumenta la cuota mensual de IA. Cancelar detiene los cobros futuros y conserva el periodo pagado. Al vencer, vuelve el plan gratuito con el cupo que le corresponda.</p>
+  {% if pagos %}<section class="card card-pad plan-historial"><h2>Últimos cobros</h2><table><thead><tr><th>Fecha</th><th>Plan</th><th>Importe</th><th>Hasta</th><th>Estado</th></tr></thead><tbody>{% for pago in pagos %}<tr><td>{{ pago.creado|date:'d/m/Y' }}</td><td>{{ pago.get_plan_display }}</td><td>${{ pago.importe }} {{ pago.moneda }}</td><td>{{ pago.fin|date:'d/m/Y' }}</td><td>{{ pago.get_estado_display }}</td></tr>{% endfor %}</tbody></table></section>{% endif %}
+</section>
+{% endblock %}
+{% block extra_js %}
+<script>
+document.querySelectorAll('select[name="mercado"]').forEach(selector => {
+  selector.addEventListener('change', () => {
+    const formulario = selector.form;
+    const cubano = selector.value === 'cuba';
+    const acuerdo = formulario.querySelector('input[name="acepto"]');
+    acuerdo.required = !cubano;
+    acuerdo.disabled = cubano;
+    acuerdo.closest('label').hidden = cubano;
+    const boton = formulario.querySelector('button');
+    boton.textContent = cubano ? 'Contactar por WhatsApp' : 'Suscribirme con PayPal';
+    boton.disabled = !cubano && {{ paypal_disponible|yesno:'false,true' }};
+  });
+  selector.form.addEventListener('submit', evento => {
+    if(selector.value === 'cuba') {
+      evento.preventDefault();
+      window.location.href = 'https://wa.me/5351652038?text=Hola%2C%20quiero%20contratar%20Boti%20desde%20Cuba';
+    }
+  });
+});
+</script>
+{% endblock %}

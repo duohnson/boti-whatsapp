@@ -140,7 +140,7 @@
 
     <section class="card2">
       <h3>Saldo y continuidad</h3>
-      <p>{{ empresa.respuestas_ia_utilizadas }} respuestas usadas de {{ empresa.limite_respuestas_ia }}. Saldo: <strong>{{ saldo_ia }}</strong>. El saldo cuenta respuestas generadas; reintentar una entrega no lo consume otra vez.</p>
+      {% if empresa.plan == 'corporativo' %}<p>{{ empresa.respuestas_ia_utilizadas }} respuestas usadas de {{ empresa.limite_respuestas_ia }}. Saldo: <strong>{{ saldo_ia }}</strong>. El saldo cuenta respuestas generadas; reintentar una entrega no lo consume otra vez.</p>{% else %}<p>La IA solo está incluida en <a href="{% url 'planes' %}">Corporativo</a>, con 1000 respuestas al mes. Tu configuración se conserva, pero se usa el flujo y los pasos de IA derivan a atención humana.</p>{% endif %}
       {% for campo in formulario %}{% if campo.name == 'max_mensajes_ia' or campo.name == 'accion_limite_ia' or campo.name == 'mensaje_limite_ia' or campo.name == 'reabrir_conversaciones' %}<p class="field">{{ campo.label_tag }}{{ campo }}{{ campo.errors }}</p>{% endif %}{% endfor %}
       <small>La IA recibe hasta el número elegido de mensajes recientes y un máximo de 16000 caracteres de historial.</small>
     </section>

@@ -1,3 +1,4 @@
+from unittest.mock import patch
 from django.contrib.auth.models import User
 from django.test import TestCase, override_settings
 from django.urls import reverse
@@ -8,7 +9,7 @@ class PruebasAccesoWeb(TestCase):
     @classmethod
     def setUpTestData(cls):
         cls.usuario = User.objects.create_user(
-            username='acceso_web', password='clave-prueba-web'
+            username='acceso_web', email='acceso@example.com', password='clave-prueba-web'
         )
 
     def test_visitante_llega_al_formulario_desde_la_raiz(self):
@@ -20,12 +21,16 @@ class PruebasAccesoWeb(TestCase):
         self.assertContains(respuesta, 'action="/cuentas/ingresar/"')
         self.assertContains(respuesta, 'name="next" value="/api/dashboard/"')
 
-    def test_ingreso_correcto_abre_dashboard_y_permite_salir(self):
+    @override_settings(EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend')
+    @patch('core.seguridad.secrets.randbelow', return_value=123456)
+    def test_ingreso_correcto_abre_dashboard_y_permite_salir(self, aleatorio):
         respuesta = self.client.post(reverse('ingresar'), {
             'username': self.usuario.username,
             'password': 'clave-prueba-web',
             'next': reverse('dashboard'),
         }, follow=True)
+        self.assertRedirects(respuesta, reverse('verificar_codigo'))
+        respuesta = self.client.post(reverse('verificar_codigo'), {'codigo':'123456'}, follow=True)
         self.assertRedirects(respuesta, reverse('dashboard'))
         self.assertContains(respuesta, 'action="/cuentas/salir/"')
         self.assertRedirects(

@@ -1,0 +1,10 @@
+[Unit]
+Description=Recordatorios de planes Boti
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=boti
+WorkingDirectory=/opt/boti-whatsapp
+ExecStart=/opt/boti-whatsapp/.venv/bin/python manage.py enviar_recordatorios

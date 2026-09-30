@@ -48,6 +48,8 @@ class PruebasOperacionBot(TestCase):
     @patch('core.conversaciones.enviar_mensaje_whatsapp')
     @patch('core.conversaciones.generar_respuesta_ia', return_value='respuesta generada')
     def test_reintento_ia_reusa_texto_identificador_y_saldo(self, generar, enviar):
+        self.empresa.plan = 'corporativo'
+        self.empresa.plan_hasta = timezone.now() + timedelta(days=7)
         self.empresa.ia_desde_primer_mensaje = True
         self.empresa.save()
         enviar.side_effect = [requests.Timeout(), {'estado':'enviado'}]
@@ -83,7 +85,9 @@ class PruebasOperacionBot(TestCase):
     @patch('core.conversaciones.enviar_mensaje_whatsapp', return_value={'estado':'enviado'})
     def test_saldo_agotado_deriva_sin_llamar_ia(self, enviar, generar):
         self.empresa.ia_desde_primer_mensaje = True
-        self.empresa.limite_respuestas_ia = 0
+        self.empresa.plan = 'corporativo'
+        self.empresa.plan_hasta = timezone.now() + timedelta(days=7)
+        self.empresa.respuestas_ia_utilizadas = 1000
         self.empresa.accion_limite_ia = 'humano'
         self.empresa.save()
         procesar_mensaje_whatsapp(self.whatsapp.identificador, '50611111111', 'hola', 'entrada')

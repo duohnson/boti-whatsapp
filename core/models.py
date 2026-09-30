@@ -23,8 +23,14 @@ class Empresa(models.Model):
     prompt_sistema_ia = models.TextField(default='Eres un asistente virtual')
     ia_desde_primer_mensaje = models.BooleanField(default=False)
     # limitar las respuestas gratuitas de ia por empresa
-    limite_respuestas_ia = models.PositiveIntegerField(default=100)
+    limite_respuestas_ia = models.PositiveIntegerField(default=0)
     respuestas_ia_utilizadas = models.PositiveIntegerField(default=0)
+    plan = models.CharField(max_length=16, default='gratis', choices=[('gratis', 'Gratuito'), ('premium', 'Premium'), ('corporativo', 'Corporativo')])
+    plan_hasta = models.DateTimeField(null=True, blank=True)
+    ciclo_ia_hasta = models.DateTimeField(null=True, blank=True)
+    bloqueado_hasta = models.DateTimeField(null=True, blank=True)
+    respuestas_gratis = models.PositiveIntegerField(default=0)
+    respuestas_totales = models.PositiveIntegerField(default=0)
     activo = models.BooleanField(default=True)
     reabrir_conversaciones = models.BooleanField(default=True)
     max_mensajes_ia = models.PositiveSmallIntegerField(default=20, validators=[MinValueValidator(1), MaxValueValidator(50)])
@@ -190,3 +196,77 @@ class HistorialChat(models.Model):
                 name='mensaje_whatsapp_entrante_unico',
             ),
         ]
+
+
+class PagoPlan(models.Model):
+    empresa = models.ForeignKey(Empresa, on_delete=models.PROTECT)
+    identificador = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
+    orden_paypal = models.CharField(max_length=128, null=True, blank=True, unique=True)
+    captura_paypal = models.CharField(max_length=128, null=True, blank=True, unique=True)
+    plan = models.CharField(max_length=16, choices=[('premium', 'Premium'), ('corporativo', 'Corporativo')])
+    periodo = models.CharField(max_length=16)
+    importe = models.DecimalField(max_digits=8, decimal_places=2)
+    moneda = models.CharField(max_length=3, default='USD')
+    estado = models.CharField(max_length=16, default='pendiente', choices=[('pendiente', 'Pendiente'), ('completado', 'Completado'), ('revisar', 'Revisar')])
+    medio = models.CharField(max_length=16, default='paypal')
+    creado = models.DateTimeField(auto_now_add=True)
+    inicio = models.DateTimeField(null=True, blank=True)
+    fin = models.DateTimeField(null=True, blank=True)
+
+
+class SuscripcionPlan(models.Model):
+    empresa = models.ForeignKey(Empresa, on_delete=models.PROTECT)
+    identificador = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
+    paypal_id = models.CharField(max_length=128, unique=True, null=True, blank=True)
+    paypal_plan = models.CharField(max_length=128)
+    plan = models.CharField(max_length=16)
+    periodo = models.CharField(max_length=16)
+    importe = models.DecimalField(max_digits=8, decimal_places=2)
+    estado = models.CharField(max_length=24, default='pendiente')
+    aprobacion = models.URLField(max_length=1000, blank=True)
+    creado = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=['empresa'], condition=models.Q(estado__in=['pendiente', 'activo', 'suspendido']), name='una_suscripcion_vigente_empresa')]
+
+
+class PerfilUsuario(models.Model):
+    usuario = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='perfil_boti')
+    correo_verificado = models.EmailField(unique=True, null=True, blank=True)
+    telefono = models.CharField(max_length=30, blank=True)
+    ubicacion = models.CharField(max_length=200, blank=True)
+    organizacion = models.CharField(max_length=150, blank=True)
+    cedula_juridica = models.CharField(max_length=60, blank=True)
+    codigo_postal = models.CharField(max_length=20, blank=True)
+    pais = models.CharField(max_length=80, blank=True)
+    direccion = models.CharField(max_length=250, blank=True)
+
+
+class CodigoCorreo(models.Model):
+    identificador = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
+    usuario = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, null=True)
+    correo = models.EmailField()
+    proposito = models.CharField(max_length=20)
+    huella = models.CharField(max_length=64)
+    vinculo = models.CharField(max_length=64)
+    datos = models.JSONField(default=dict)
+    intentos = models.PositiveSmallIntegerField(default=0)
+    creado = models.DateTimeField(auto_now_add=True)
+    vence = models.DateTimeField()
+    usado = models.BooleanField(default=False)
+
+
+class LimiteAcceso(models.Model):
+    clave = models.CharField(max_length=64, unique=True)
+    inicio = models.DateTimeField()
+    intentos = models.PositiveIntegerField(default=0)
+
+
+class AvisoPlan(models.Model):
+    empresa = models.ForeignKey(Empresa, on_delete=models.CASCADE)
+    vencimiento = models.DateTimeField()
+    estado = models.CharField(max_length=16, default='pendiente')
+    enviado = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=['empresa', 'vencimiento'], name='aviso_unico_periodo')]

@@ -82,7 +82,7 @@ a{color:inherit;text-decoration:none}
 <div class="auth">
   <main class="form-panel">
     <form class="form-box" method="post" action="{% url 'registro' %}">
-      {% csrf_token %}
+      {% csrf_token %}<label style="position:absolute;left:-10000px" aria-hidden="true">Deja este campo vacío<input name="sitio_web" tabindex="-1" autocomplete="off"></label>
       <div>
         <h2>Crea tu cuenta</h2>
         <p class="sub">Empieza gratis en menos de un minuto.</p>

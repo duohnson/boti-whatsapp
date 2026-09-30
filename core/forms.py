@@ -2,7 +2,7 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from django import forms
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
-from .models import Empresa, NodoBot, OpcionNodo
+from .models import Empresa, NodoBot, OpcionNodo, PerfilUsuario
 
 
 class ConfiguracionEmpresaForm(forms.ModelForm):
@@ -60,6 +60,12 @@ class RegistroForm(UserCreationForm):
     first_name = forms.CharField(label='Nombre', max_length=150)
     email = forms.EmailField(label='Correo electrónico')
 
+    def clean_email(self):
+        correo = self.cleaned_data['email'].strip().lower()
+        if User.objects.filter(email__iexact=correo).exists() or PerfilUsuario.objects.filter(correo_verificado=correo).exists():
+            raise forms.ValidationError('Este correo no está disponible. Si ya tienes cuenta, inicia sesión.')
+        return correo
+
     class Meta(UserCreationForm.Meta):
         fields = ['username', 'first_name', 'email', 'password1', 'password2']
 
@@ -67,7 +73,7 @@ class RegistroForm(UserCreationForm):
 class PerfilForm(forms.ModelForm):
     class Meta:
         model = User
-        fields = ['first_name', 'last_name', 'email']
+        fields = ['first_name', 'last_name']
         labels = {'first_name': 'Nombre', 'last_name': 'Apellidos', 'email': 'Correo electrónico'}
 
 
@@ -131,3 +137,38 @@ class OpcionNodoForm(forms.ModelForm):
         self.fields['etiqueta'].required = False
         self.fields['entrada_esperada'].help_text = 'Cada valor debe ser único dentro de este paso.'
         self.fields['nodo_siguiente'].help_text = 'Puedes enlazar este paso con cualquier otro paso de tu flujo.'
+
+
+class DatosPerfilForm(forms.ModelForm):
+    class Meta:
+        model = PerfilUsuario
+        fields = ['telefono', 'ubicacion', 'pais', 'direccion', 'codigo_postal', 'organizacion', 'cedula_juridica']
+        labels = {'telefono': 'Teléfono', 'ubicacion': 'Ciudad o ubicación', 'pais': 'País', 'direccion': 'Dirección', 'codigo_postal': 'Código postal', 'organizacion': 'Nombre de organización', 'cedula_juridica': 'Cédula jurídica o identificación fiscal'}
+
+    def clean_telefono(self):
+        import re
+        telefono = self.cleaned_data['telefono'].strip()
+        if telefono and not re.fullmatch(r'[+0-9 ()-]{7,30}', telefono):
+            raise forms.ValidationError('Escribe un teléfono válido con código de país.')
+        return telefono
+
+
+class CambioCorreoForm(forms.Form):
+    correo = forms.EmailField(label='Nuevo correo electrónico')
+    clave_actual = forms.CharField(label='Contraseña actual', widget=forms.PasswordInput)
+
+    def __init__(self, usuario, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.usuario = usuario
+
+    def clean_clave_actual(self):
+        clave = self.cleaned_data['clave_actual']
+        if not self.usuario.check_password(clave):
+            raise forms.ValidationError('La contraseña no coincide.')
+        return clave
+
+    def clean_correo(self):
+        correo = self.cleaned_data['correo'].strip().lower()
+        if User.objects.filter(email__iexact=correo).exists() or PerfilUsuario.objects.filter(correo_verificado=correo).exists():
+            raise forms.ValidationError('Este correo no está disponible.')
+        return correo

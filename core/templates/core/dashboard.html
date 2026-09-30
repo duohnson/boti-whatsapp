@@ -97,6 +97,7 @@
 {% endblock %}
 
 {% block content %}
+{% if consumo_plan %}<aside class="card card-pad" style="margin-bottom:20px"><strong>{{ consumo_plan.nombre }}</strong> · {% if consumo_plan.limite %}{{ consumo_plan.usados }} / {{ consumo_plan.limite }} {% if consumo_plan.gratis %}respuestas{% else %}respuestas de IA este mes{% endif %}{% else %}Nodos y flujos ilimitados, sin IA{% endif %}. <a href="{% url 'planes' %}">Ver plan y consumo</a>{% if consumo_plan.bloqueado %}<p>Respuestas pausadas hasta {{ empresa_activa.bloqueado_hasta|date:'d/m/Y H:i' }}.</p>{% endif %}</aside>{% endif %}
 <div class="page-wrap">
   <div class="page-head">
     <h1>Conecta tu WhatsApp</h1>

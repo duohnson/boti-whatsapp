@@ -1,6 +1,6 @@
 import json
 import uuid
-from datetime import datetime, time, timezone
+from datetime import datetime, time, timezone, timedelta
 from unittest.mock import patch
 
 from django.contrib.auth.models import User
@@ -73,7 +73,7 @@ class PruebasIntegracionFrontend(TestCase):
         self.assertEqual(self.client.post(reverse('conectar_whatsapp'), {'telefono': 'no es numero'}).status_code, 400)
 
     def test_configuracion_muestra_y_guarda_los_campos_reales(self):
-        datos = model_to_dict(self.empresa)
+        datos = {clave: valor for clave, valor in model_to_dict(self.empresa).items() if valor is not None}
         datos.update(bienvenida='Hola desde el panel', despedida='Hasta pronto', tono='formal', idioma='pt', derivar_auto=True)
         respuesta = self.client.post(reverse('configuracion_bot'), datos, follow=True)
         self.assertContains(respuesta, 'Hola desde el panel')
@@ -156,17 +156,25 @@ class PruebasIntegracionFrontend(TestCase):
         self.empresa.horario_fin = time(6)
         self.assertFalse(fuera_del_horario(self.empresa, datetime(2026, 9, 29, 7, tzinfo=timezone.utc)))
 
-    def test_registro_y_recordarme(self):
+    @override_settings(EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend')
+    @patch('core.seguridad.secrets.randbelow', return_value=123456)
+    def test_registro_y_recordarme(self, aleatorio):
+        from core.models import LimiteAcceso
         self.client.logout()
         respuesta = self.client.post(reverse('registro'), {'username':'nuevo', 'first_name':'Nombre', 'email':'nuevo@example.com', 'password1':'Clave-segura-nueva-963', 'password2':'Clave-segura-nueva-963'})
         self.assertEqual(respuesta.status_code, 302)
+        self.assertFalse(Empresa.objects.filter(propietario__username='nuevo').exists())
+        self.client.post(reverse('verificar_codigo'), {'codigo':'123456'})
         self.assertTrue(Empresa.objects.filter(propietario__username='nuevo').exists())
-        self.client.logout()
-        self.client.post(reverse('ingresar'), {'username':'panel', 'password':'Clave-segura-123'})
-        self.assertTrue(self.client.session.get_expire_at_browser_close())
-        self.client.logout()
-        self.client.post(reverse('ingresar'), {'username':'panel', 'password':'Clave-segura-123', 'recordarme':'1'})
-        self.assertFalse(self.client.session.get_expire_at_browser_close())
+        self.usuario.email = 'panel@example.com'
+        self.usuario.save(update_fields=['email'])
+        for recordar in ['', '1']:
+            self.client.logout()
+            LimiteAcceso.objects.all().delete()
+            self.client.post(reverse('ingresar'), {'username':'panel', 'password':'Clave-segura-123', 'recordarme':recordar})
+            self.assertNotIn('_auth_user_id', self.client.session)
+            self.client.post(reverse('verificar_codigo'), {'codigo':'123456'})
+            self.assertEqual(self.client.session.get_expire_at_browser_close(), not bool(recordar))
 
     @patch('core.conversaciones.enviar_mensaje_whatsapp')
     @patch('core.conversaciones.timezone.now')
@@ -184,6 +192,8 @@ class PruebasIntegracionFrontend(TestCase):
     @patch('core.conversaciones.enviar_mensaje_whatsapp')
     @patch('core.conversaciones.generar_respuesta_ia', return_value='Olá')
     def test_tono_e_idioma_llegan_a_la_ia(self, generar, enviar):
+        self.empresa.plan = 'corporativo'
+        self.empresa.plan_hasta = datetime.now(timezone.utc) + timedelta(days=7)
         self.sesion.estado = 'conectado'
         self.sesion.save()
         self.empresa.ia_desde_primer_mensaje = True

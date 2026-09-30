@@ -1,0 +1,11 @@
+[Unit]
+Description=Revisar vencimientos de Boti cada hora
+
+[Timer]
+OnCalendar=hourly
+Persistent=true
+RandomizedDelaySec=60
+Unit=boti-recordatorios.service
+
+[Install]
+WantedBy=timers.target

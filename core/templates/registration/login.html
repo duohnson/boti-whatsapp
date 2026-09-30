@@ -99,11 +99,11 @@ a{color:inherit;text-decoration:none}
 
       <div>
         <h2>Bienvenido de nuevo</h2>
-        <p class="sub">Ingresa tus credenciales para acceder al panel.</p>
+        <p class="sub">Ingresa tus credenciales. Después confirmaremos tu acceso por correo.</p>
       </div>
 
       {% if form.errors %}
-        <div class="alert">Usuario o contraseña incorrectos. Intenta de nuevo.</div>
+        <div class="alert">{{ form.non_field_errors }}</div>
       {% endif %}
 
       <div class="field">

@@ -1,0 +1,4 @@
+{% extends 'core/base.html' %}
+{% block title %}Boti · Seguridad{% endblock %}
+{% block page_title %}Seguridad de la cuenta{% endblock %}
+{% block content %}<section class="page-wrap"><header class="page-head"><h1>{{ titulo }}</h1><p>{{ detalle }}</p></header><form class="card card-pad" method="post">{% csrf_token %}{% include 'core/campos.html' with formulario=formulario %}<button class="btn btn-primary">Enviar código</button> <a class="btn btn-ghost" href="{% url 'perfil' %}">Volver al perfil</a></form></section>{% endblock %}

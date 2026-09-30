@@ -27,7 +27,7 @@ class PruebasModelosSimples(TestCase):
         self.assertTrue(self.empresa.activo)
 
     def test_dos_empresa_tiene_limite_ia(self):
-        self.assertEqual(self.empresa.limite_respuestas_ia, 100)
+        self.assertEqual(self.empresa.limite_respuestas_ia, 0)
 
     def test_tres_sesion_whatsapp_tiene_identificador(self):
         sesion = SesionWhatsApp.objects.create(empresa=self.empresa)

@@ -1,14 +1,9 @@
 {% extends 'core/base.html' %}
 {% block title %}Boti · Mi perfil{% endblock %}
 {% block page_title %}Mi perfil{% endblock %}
-{% block content %}
-<div class="page-wrap">
-<h1>Mi perfil</h1>
-<form class="card card-pad" method="post">
-  {% csrf_token %}
-  <p>Usuario: {{ request.user.username }}</p>
-  {% include 'core/campos.html' with formulario=formulario %}
-  <button class="btn btn-primary" type="submit">Guardar perfil</button>
-</form>
-</div>
+{% block extra_css %}
+.perfil-datos{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 24px}.perfil-seguridad{margin-top:24px}.perfil-seguridad p{margin:12px 0;color:var(--muted)}@media(max-width:700px){.perfil-datos{grid-template-columns:1fr}}
 {% endblock %}
+{% block content %}<section class="page-wrap"><header class="page-head"><h1>Tu espacio en Boti</h1><p>Completa solo lo que quieras compartir. Los datos de organización son opcionales.</p></header>
+<form class="card card-pad" method="post">{% csrf_token %}<p>Usuario: <strong>{{ request.user.username }}</strong></p><section class="perfil-datos" aria-label="Datos personales">{% include 'core/campos.html' with formulario=formulario %}</section><h2>Contacto y organización</h2><section class="perfil-datos" aria-label="Datos opcionales">{% include 'core/campos.html' with formulario=adicionales %}</section><button class="btn btn-primary">Guardar perfil</button></form>
+<section class="card card-pad perfil-seguridad"><h2>Acceso y seguridad</h2><p>{{ request.user.email|default:'Sin correo configurado' }} {% if perfil.correo_verificado == request.user.email|lower %}· verificado{% endif %}</p><p>Los cambios de correo y contraseña requieren un código enviado por correo electrónico.</p><a class="btn btn-ghost" href="{% url 'cambiar_correo' %}">Cambiar correo</a> <a class="btn btn-ghost" href="{% url 'cambiar_clave' %}">Cambiar contraseña</a></section></section>{% endblock %}
