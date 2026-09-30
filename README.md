@@ -1,10 +1,8 @@
 # Boti Whatsapp
 
-Un backend básico que estoy armando para manejar chatbots de WhatsApp. La idea principal es tener un panel donde se puedan armar flujos de mensajes, y no depender siempre de la IA, que pasa si no configuro una API KEY? Nada, haces tu flujo de mensajes y responde igual, usa IA solo si lo decido y que apis le coloque, ademas de que se puede enviar a consulta humana, para que un asistente o tu persona pueda responder.
+Boti Whatsapp es una plataforma que desarrolle en colaboración con P3terPl4y, es un backend para manejar chatbots de WhatsApp. La idea principal es tener un panel donde se puedan armar flujos de mensajes, y no depender siempre de la IA, que pasa si no configuro una API KEY? Nada, haces tu flujo de mensajes y responde igual, usa IA solo si lo decido y que apis le coloque, ademas de que se puede enviar a consulta humana, para que un asistente o tu persona pueda responder.
 
-Atención: El proyecto está en pleno desarrollo. Las sesiones no tienen medidas de seguridad avanzadas ni autenticación de dos pasos. Por ahora sirve más como base para continuar programando o reciclar código en otros proyectos. No recomiendo desplegarlo en producción tal como está.
-
-Dentro de un tiempo estara mejor armado, le falta mucho..
+El código es gratuito, con licencia MIT, eso te permite llevarte el código y editarlo a tu antojo, mejorarlo, cambiar nombre y desplegarlo, etc.
 
 El panel permite vincular whatsapp por qr o codigo manual, configurar el bot, editar sus pasos, atender conversaciones y consultar metricas.
 Como conecto mi whatsapp? por codigo QR con la libreria de whatsapp-web.js que es un cliente de whatsapp no oficial.
@@ -13,7 +11,7 @@ Como se comunican? por medio de http, node se comunica con django y django con n
 ## Qué tecnologías uso
 
 - Backend: Python y Django (ORM, modelos, vistas).
-- IA: Esto esta verde, apenas en desarrollo.
+- IA: Posee 3 modelos que pueden crear redundancia por si alguno falla.
 - Base de datos: PostgreSQL, en arquitectura multi-tenant.
 - Servicio de WhatsApp: Node.js y la librería whatsapp-web.js (usa Puppeteer).
 
